@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "gen",
+    "rootDir": "srv",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true, 
+    "types": ["@cap-js/cds-types", "node"]
+  },
+  "include": ["srv/**/*.ts"]
+}
