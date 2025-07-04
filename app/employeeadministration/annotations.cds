@@ -38,30 +38,32 @@ annotate service.Employees with @(
             Label: '{i18n>Bankname}',
         },
     ],
-    UI.Facets                        : [{
-        $Type : 'UI.ReferenceFacet',
-        Label : '{i18n>GeneralInformation}',
-        ID    : 'GeneralInformation',
-        Target: '@UI.FieldGroup#GeneralInformation',
-    },
+    UI.Facets                        : [
+        {
+            $Type : 'UI.ReferenceFacet',
+            Label : '{i18n>GeneralInformation}',
+            ID    : 'GeneralInformation',
+            Target: '@UI.FieldGroup#GeneralInformation',
+        },
         {
             $Type : 'UI.ReferenceFacet',
             Label : '{i18n>Ratings}',
-            ID : 'i18nRatings',
-            Target : 'ratings/@UI.LineItem#i18nRatings',
+            ID    : 'i18nRatings',
+            Target: 'ratings/@UI.LineItem#i18nRatings',
         },
         {
             $Type : 'UI.ReferenceFacet',
             Label : '{i18n>EmployeeLearnings}',
-            ID : 'i18nEmployeeLearnings',
-            Target : 'learnings/@UI.LineItem#i18nEmployeeLearnings',
+            ID    : 'i18nEmployeeLearnings',
+            Target: 'learnings/@UI.LineItem#i18nEmployeeLearnings',
         },
         {
             $Type : 'UI.ReferenceFacet',
             Label : '{i18n>EmployeeProjects}',
-            ID : 'i18nEmployeeProjects',
-            Target : 'projects/@UI.LineItem#i18nEmployeeProjects',
-        }, ],
+            ID    : 'i18nEmployeeProjects',
+            Target: 'projects/@UI.LineItem#i18nEmployeeProjects',
+        },
+    ],
     UI.FieldGroup #GeneralInformation: {
         $Type: 'UI.FieldGroupType',
         Data : [
@@ -122,22 +124,21 @@ annotate service.Employees with @(
             },
         ],
     },
-    UI.Identification : [
+    UI.Identification                : [
         {
             $Type : 'UI.DataFieldForAction',
-            Action : 'AdminService.setEmployeeInactive',
+            Action: 'AdminService.setEmployeeInactive',
             Label : '{i18n>MarkInactive}',
         },
         {
-            $Type : 'UI.DataFieldForAction',
-            Action : 'AdminService.deleteEmployeePermanently',
-            Label : '{i18n>PermanentlyDelete}',
-            Criticality : #Positive,
+            $Type      : 'UI.DataFieldForAction',
+            Action     : 'AdminService.deleteEmployeePermanently',
+            Label      : '{i18n>PermanentlyDelete}',
+            Criticality: #Positive,
         }
     ],
 
 );
-
 
 
 annotate service.Employees with {
@@ -155,28 +156,122 @@ annotate service.Employees with {
 annotate service.Employees with {
     bankAccountNumber @Common.FieldControl: #Mandatory
 };
-annotate service.Ratings with @(
-    UI.LineItem #i18nRatings : [
-        {
-            $Type : 'UI.DataField',
-            Value : year,
-            Label : '{i18n>Year}',
-        },
-        {
-            $Type : 'UI.DataField',
-            Value : ratings,
-            Label : '{i18n>Ratings}',
-        },
-    ]
-);
 
-annotate service.Learnings with @(
-    UI.LineItem #i18nEmployeeLearnings : [
-    ]
-);
+annotate service.Ratings with @(UI.LineItem #i18nRatings: [
+    {
+        $Type: 'UI.DataField',
+        Value: year,
+        Label: '{i18n>Year}',
+    },
+    {
+        $Type: 'UI.DataField',
+        Value: ratings,
+        Label: '{i18n>Ratings}',
+    },
+]);
 
-annotate service.Projects with @(
-    UI.LineItem #i18nEmployeeProjects : [
-    ]
-);
+annotate service.Learnings with @(UI.LineItem #i18nEmployeeLearnings: [
+    {
+        $Type: 'UI.DataField',
+        Value: learning_ID,
+        Label: '{i18n>LearningDescription}',
+    },
+    {
+        $Type: 'UI.DataField',
+        Value: status,
+        Label: '{i18n>Status}',
+    },
+]);
+
+annotate service.Projects with @(UI.LineItem #i18nEmployeeProjects: [
+    {
+        $Type: 'UI.DataField',
+        Value: project_ID,
+        Label: '{i18n>Projectname}',
+    },
+    {
+        $Type: 'UI.DataField',
+        Value: projectDescription,
+        Label: '{i18n>Projectdescription}',
+    },
+]);
+
+annotate service.Learnings with {
+    learning @(
+        Common.Text                    : {
+            $value                : learning.courseDescription,
+            ![@UI.TextArrangement]: #TextOnly
+        },
+        Common.ValueList               : {
+            $Type         : 'Common.ValueListType',
+            CollectionPath: 'LearningsMasterData',
+            Parameters    : [{
+                $Type            : 'Common.ValueListParameterInOut',
+                LocalDataProperty: learning_ID,
+                ValueListProperty: 'ID',
+            }, ],
+            Label         : '{i18n>LearningDescription}',
+        },
+        Common.ValueListWithFixedValues: true,
+    )
+};
+
+annotate service.LearningsMasterData with {
+    ID @Common.Text: {
+        $value                : courseDescription,
+        ![@UI.TextArrangement]: #TextOnly,
+    }
+};
+
+annotate service.Projects with {
+    project @(
+        Common.Text                    : {
+            $value                : project.projectName,
+            ![@UI.TextArrangement]: #TextOnly
+        },
+        Common.ValueList               : {
+            $Type         : 'Common.ValueListType',
+            CollectionPath: 'ProjectsMasterData',
+            Parameters    : [{
+                $Type            : 'Common.ValueListParameterInOut',
+                LocalDataProperty: project_ID,
+                ValueListProperty: 'ID',
+            }, ],
+            Label         : '{i18n>Projectname}',
+        },
+        Common.ValueListWithFixedValues: true,
+    )
+};
+
+annotate service.ProjectsMasterData with {
+    ID @Common.Text: {
+        $value                : projectName,
+        ![@UI.TextArrangement]: #TextOnly,
+    }
+};
+
+
+annotate AdminService.Employees actions {
+    setEmployeeInactive @(
+        Core.OperationAvailable: {
+            $edmJson: {
+                $Eq: [ { $Path: 'in/status' }, 'Active' ]
+            }
+        },
+        Common.SideEffects: {
+            TargetEntities: ['/Employees']
+        }
+    );
+
+    deleteEmployeePermanently @(
+        Core.OperationAvailable: {
+            $edmJson: {
+                $Eq: [ { $Path: 'in/status' }, 'Inactive' ]
+            }
+        }
+    );
+};
+annotate service.Employees with {
+    emailId @Common.FieldControl : #ReadOnly
+};
 

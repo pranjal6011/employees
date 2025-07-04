@@ -4,7 +4,7 @@ service AdminService {
   // @requires: 'Admin'
   @odata.draft.enabled
   entity Employees as projection on db.Employees actions {
-        action setEmployeeInactive();
+        action setEmployeeInactive() returns Employees;
         action deleteEmployeePermanently();
     };
 
@@ -44,3 +44,4 @@ annotate AdminService.Employees actions {
     }
   );
 };
+annotate AdminService.Employees with @odata.draft.enabled;
