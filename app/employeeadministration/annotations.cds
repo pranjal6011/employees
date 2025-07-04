@@ -108,6 +108,11 @@ annotate service.Employees with @(
                 Label: '{i18n>Annualleavesused}',
             },
             {
+                $Type : 'UI.DataField',
+                Value : remainingLeaves,
+                Label : '{i18n>Remainingleaves}',
+            },
+            {
                 $Type: 'UI.DataField',
                 Value: bankName,
                 Label: '{i18n>Bankname}',
@@ -134,7 +139,7 @@ annotate service.Employees with @(
             $Type      : 'UI.DataFieldForAction',
             Action     : 'AdminService.deleteEmployeePermanently',
             Label      : '{i18n>PermanentlyDelete}',
-            Criticality: #Positive,
+            Criticality: #Positive
         }
     ],
 
@@ -150,7 +155,7 @@ annotate service.Employees with {
 };
 
 annotate service.Employees with {
-    status @Common.FieldControl: #Mandatory
+    status @Common.FieldControl: #ReadOnly
 };
 
 annotate service.Employees with {
@@ -252,26 +257,42 @@ annotate service.ProjectsMasterData with {
 
 
 annotate AdminService.Employees actions {
-    setEmployeeInactive @(
-        Core.OperationAvailable: {
-            $edmJson: {
-                $Eq: [ { $Path: 'in/status' }, 'Active' ]
-            }
-        },
-        Common.SideEffects: {
-            TargetEntities: ['/Employees']
+    setEmployeeInactive       @(
+        Core.OperationAvailable: {$edmJson: {$Eq: [
+            {$Path: 'in/status'},
+            'Active'
+        ]}},
+        Common.SideEffects     : {
+            SourceEntities  : ['/Employees'],
+            TargetProperties: ['in/status'],
         }
     );
 
     deleteEmployeePermanently @(
-        Core.OperationAvailable: {
-            $edmJson: {
-                $Eq: [ { $Path: 'in/status' }, 'Inactive' ]
-            }
-        }
+        Core.OperationAvailable: {$edmJson: {$Eq: [
+            {$Path: 'in/status'},
+            'Inactive'
+        ]}},
+        Common.SideEffects     : {
+            SourceEntities  : ['/Employees'],
+            TargetEntities  : ['/Employees'],
+        },
+
     );
 };
+
 annotate service.Employees with {
-    emailId @Common.FieldControl : #ReadOnly
+    emailId @Common.FieldControl: #ReadOnly
+};
+annotate service.Employees with {
+    annualLeavesUsed @Common.FieldControl : #ReadOnly
+};
+
+annotate service.Employees with {
+    annualLeavesGranted @Common.FieldControl : #ReadOnly
+};
+
+annotate service.Employees with {
+    remainingLeaves @Common.FieldControl : #ReadOnly
 };
 

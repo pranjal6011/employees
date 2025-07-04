@@ -155,7 +155,39 @@
           "options": {
             "settings": {
               "editableHeaderContent": false,
-              "contextPath": "/Employees"
+              "contextPath": "/Employees",
+              "controlConfiguration": {
+                "ratings/@com.sap.vocabularies.UI.v1.LineItem#i18nRatings": {
+                  "columns": {
+                    "DataField::year": {
+                      "width": "25%"
+                    },
+                    "DataField::ratings": {
+                      "width": "25%"
+                    }
+                  }
+                },
+                "learnings/@com.sap.vocabularies.UI.v1.LineItem#i18nEmployeeLearnings": {
+                  "columns": {
+                    "DataField::learning_ID": {
+                      "width": "25%"
+                    },
+                    "DataField::status": {
+                      "width": "25%"
+                    }
+                  }
+                },
+                "projects/@com.sap.vocabularies.UI.v1.LineItem#i18nEmployeeProjects": {
+                  "columns": {
+                    "DataField::project_ID": {
+                      "width": "25%"
+                    },
+                    "DataField::projectDescription": {
+                      "width": "25%"
+                    }
+                  }
+                }
+              }
             }
           },
           "controlAggregation": "midColumnPages",

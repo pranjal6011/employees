@@ -45,6 +45,22 @@
   "cds": {
     "fiori": {
       "main": "app/launchpad/webapp/index.html"
+    },
+     "requires": {
+    "auth": {
+      "kind": "mocked",
+      "users": {
+        "adminUser": {
+          "password": "admin123",
+          "roles": ["Admin"]
+        },
+        "employeeUser": {
+          "password": "emp123",
+          "roles": ["User"]
+        },
+        "*": false
+      }
     }
+  }
   }
 }

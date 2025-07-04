@@ -23,6 +23,7 @@ entity Employees : managed {
       bankCode            : String(20);
       annualLeavesGranted : Integer default 20;
       annualLeavesUsed    : Integer default 0;
+      remainingLeaves     : Integer @cds.virtual;
 
       projects            : Composition of many Projects
                               on projects.employee = $self;
@@ -33,12 +34,14 @@ entity Employees : managed {
 }
 
 entity Projects : cuid {
+  key ID: UUID @Core.Computed;
   employee           : Association to Employees;
   project            : Association to ProjectsMasterData;
   projectDescription : String(255);
 }
 
 entity Ratings : cuid {
+  key ID: UUID @Core.Computed;
   employee   : Association to Employees;
   year       : String(4);
   ratings    : Integer;
@@ -46,12 +49,14 @@ entity Ratings : cuid {
 }
 
 entity Learnings : cuid {
+  key ID: UUID @Core.Computed;
   employee : Association to Employees;
   learning : Association to LearningsMasterData;
-  status   : String(50) default 'Yet Not Started';
+  status   : String(50) default 'Not Yet Started';
 }
 
 entity LearningsMasterData : cuid {
+  key ID: UUID @Core.Computed;
   courseDescription : String(255);
   availability      : Boolean;
   initial           : Boolean;
@@ -59,6 +64,7 @@ entity LearningsMasterData : cuid {
 }
 
 entity ProjectsMasterData : cuid {
+  key ID: UUID @Core.Computed;
   projectName        : String(150);
   projectDescription : String(255);
 }

@@ -1,47 +1,119 @@
 using my.employee as db from '../db/schema';
 
-service AdminService {
-  // @requires: 'Admin'
-  @odata.draft.enabled
-  entity Employees as projection on db.Employees actions {
-        action setEmployeeInactive() returns Employees;
-        action deleteEmployeePermanently();
-    };
+service AdminService @(requires: 'authenticated-user'){
+    entity Employees           as projection on db.Employees
+        actions {
+            action setEmployeeInactive()       returns Employees;
+            action deleteEmployeePermanently() returns String;
+        };
 
-  // @requires: 'Admin'
-  entity Projects            as projection on db.Projects;
+    entity Projects            as projection on db.Projects;
 
-  // @requires: 'Admin'
-  entity Ratings             as projection on db.Ratings;
+    entity Ratings             as projection on db.Ratings;
 
-  // @requires: 'Admin'
-  entity Learnings           as projection on db.Learnings;
+    entity Learnings           as projection on db.Learnings;
 
-  // @requires: 'Admin'
-  @odata.draft.enabled
-  entity LearningsMasterData as projection on db.LearningsMasterData;
+    @odata.draft.enabled
+    entity LearningsMasterData as projection on db.LearningsMasterData;
 
-  // @requires: 'Admin'
-  @odata.draft.enabled
-  entity ProjectsMasterData  as projection on db.ProjectsMasterData;
+    @odata.draft.enabled
+    entity ProjectsMasterData  as projection on db.ProjectsMasterData;
 }
 
 
-annotate AdminService.Employees actions {
-  setEmployeeInactive @(
-    Core.OperationAvailable: {
-      $edmJson: {
-        $Eq: [ { $Path: 'in/status' }, 'Active' ]
-      }
-    }
-  );
-
-  deleteEmployeePermanently @(
-    Core.OperationAvailable: {
-      $edmJson: {
-        $Eq: [ { $Path: 'in/status' }, 'Inactive' ]
-      }
-    }
-  );
-};
 annotate AdminService.Employees with @odata.draft.enabled;
+
+// service CustomerService @(requires: 'authenticated-user') {
+
+annotate AdminService.Employees with @(restrict: [
+    {
+        grant: ['READ'],
+        to   : 'User'
+    },
+    {
+        grant: ['ALL'],
+        to   : 'Admin'
+    }
+]);
+
+annotate AdminService.Projects with @restrict: [
+    {
+        grant: ['READ'],
+        to   : 'User'
+    },
+    {
+        grant: ['ALL'],
+        to   : 'Admin'
+    }
+];
+
+annotate AdminService.Ratings with @restrict: [
+    {
+        grant: ['READ'],
+        to   : 'User'
+    },
+    {
+        grant: ['ALL'],
+        to   : 'Admin'
+    }
+];
+
+annotate AdminService.Learnings with @restrict: [
+    {
+        grant: ['READ'],
+        to   : 'User'
+    },
+    {
+        grant: ['ALL'],
+        to   : 'Admin'
+    }
+];
+
+annotate AdminService.ProjectsMasterData with @(restrict: [
+    {
+        grant: ['READ'],
+        to   : 'User'
+    },
+    {
+        grant: ['ALL'],
+        to   : 'Admin'
+    }
+]);
+
+annotate AdminService.LearningsMasterData with @restrict: [
+    {
+        grant: ['READ'],
+        to   : 'User'
+    },
+    {
+        grant: ['ALL'],
+        to   : 'Admin'
+    }
+];
+
+// }
+
+annotate AdminService.Employees actions {
+    setEmployeeInactive       @(
+        Core.OperationAvailable: {$edmJson: {$Eq: [
+            {$Path: 'in/status'},
+            'Active'
+        ]}},
+        Common.SideEffects     : {
+            SourceEntities  : ['/Employees'],
+            TargetProperties: ['in/status'],
+        }
+    );
+
+    deleteEmployeePermanently @(
+        Core.OperationAvailable: {$edmJson: {$Eq: [
+            {$Path: 'in/status'},
+            'Inactive'
+        ]}},
+        Common.SideEffects     : {
+            SourceEntities: ['/Employees'],
+            TargetEntities: ['/Employees']
+        },
+
+    );
+};
