@@ -191,4 +191,15 @@
     "registrationIds": [],
     "archeType": "transactional"
   }
+,
+"sap.fe": {
+    "app": {
+      "share": {
+        "showSendEmail": false,
+        "teams": {
+          "showMsTeamsOptions": false
+        }
+      }
+    }
+  }
 }

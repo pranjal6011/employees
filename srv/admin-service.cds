@@ -1,6 +1,7 @@
 using my.employee as db from '../db/schema';
 
 service AdminService @(requires: 'authenticated-user'){
+    @odata.draft.bypass
     entity Employees           as projection on db.Employees
         actions {
             action setEmployeeInactive()       returns Employees;
@@ -21,9 +22,8 @@ service AdminService @(requires: 'authenticated-user'){
 }
 
 
-annotate AdminService.Employees with @odata.draft.enabled;
 
-// service CustomerService @(requires: 'authenticated-user') {
+annotate AdminService.Employees with @odata.draft.enabled;
 
 annotate AdminService.Employees with @(restrict: [
     {
@@ -91,8 +91,6 @@ annotate AdminService.LearningsMasterData with @(restrict: [
     }
 ]);
 
-// }
-
 annotate AdminService.Employees actions {
     setEmployeeInactive       @(
         requires: 'Admin',
@@ -106,17 +104,17 @@ annotate AdminService.Employees actions {
         }
     );
 
-    deleteEmployeePermanently @(
-        requires: 'Admin',
-        Core.OperationAvailable: {$edmJson: {$Eq: [
-            {$Path: 'in/status'},
-            'Inactive'
-        ]}},
+    // deleteEmployeePermanently @(
+    //     requires: 'Admin',
+    //     Core.OperationAvailable: {$edmJson: {$Eq: [
+    //         {$Path: 'in/status'},
+    //         'Inactive'
+    //     ]}},
         
-        Common.SideEffects     : {
-            SourceEntities: ['/Employees'],
-            TargetEntities: ['/Employees'],
-        },
+    //     Common.SideEffects     : {
+    //         SourceEntities: ['/Employees'],
+    //         TargetEntities: ['/Employees'],
+    //     },
 
-    );
+    // );
 };

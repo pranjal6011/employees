@@ -108,9 +108,9 @@ annotate service.Employees with @(
                 Label: '{i18n>Annualleavesused}',
             },
             {
-                $Type : 'UI.DataField',
-                Value : remainingLeaves,
-                Label : '{i18n>Remainingleaves}',
+                $Type: 'UI.DataField',
+                Value: remainingLeaves,
+                Label: '{i18n>Remainingleaves}',
             },
             {
                 $Type: 'UI.DataField',
@@ -134,12 +134,6 @@ annotate service.Employees with @(
             $Type : 'UI.DataFieldForAction',
             Action: 'AdminService.setEmployeeInactive',
             Label : '{i18n>MarkInactive}',
-        },
-        {
-            $Type      : 'UI.DataFieldForAction',
-            Action     : 'AdminService.deleteEmployeePermanently',
-            Label      : '{i18n>PermanentlyDelete}',
-            Criticality: #Positive
         }
     ],
 
@@ -163,6 +157,11 @@ annotate service.Employees with {
 };
 
 annotate service.Ratings with @(UI.LineItem #i18nRatings: [
+    {
+        $Type: 'UI.DataField',
+        Value: reviewer_ID,
+        Label: '{i18n>ReviewerId}',
+    },
     {
         $Type: 'UI.DataField',
         Value: year,
@@ -210,14 +209,29 @@ annotate service.Learnings with {
         Common.ValueList               : {
             $Type         : 'Common.ValueListType',
             CollectionPath: 'LearningsMasterData',
-            Parameters    : [{
-                $Type            : 'Common.ValueListParameterInOut',
-                LocalDataProperty: learning_ID,
-                ValueListProperty: 'ID',
-            }, ],
+            Parameters    : [
+                {
+                    $Type            : 'Common.ValueListParameterInOut',
+                    LocalDataProperty: learning_ID,
+                    ValueListProperty: 'ID',
+                },
+                {
+                    $Type            : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty: 'courseDescription',
+                },
+                {
+                    $Type            : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty: 'courseContact',
+                },
+                {
+                    $Type            : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty: 'initial',
+                    @Common.Label    : '{i18n>Initial}',
+                },
+            ],
             Label         : '{i18n>LearningDescription}',
         },
-        Common.ValueListWithFixedValues: true,
+        Common.ValueListWithFixedValues: false,
     )
 };
 
@@ -237,24 +251,26 @@ annotate service.Projects with {
         Common.ValueList               : {
             $Type         : 'Common.ValueListType',
             CollectionPath: 'ProjectsMasterData',
-            Parameters    : [{
-                $Type            : 'Common.ValueListParameterInOut',
-                LocalDataProperty: project_ID,
-                ValueListProperty: 'ID',
-            }, ],
+            Parameters    : [
+                {
+                    $Type            : 'Common.ValueListParameterInOut',
+                    LocalDataProperty: project_ID,
+                    ValueListProperty: 'ID',
+                },
+                {
+                    $Type            : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty: 'projectName',
+                },
+                {
+                    $Type            : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty: 'projectDescription',
+                },
+            ],
             Label         : '{i18n>Projectname}',
         },
-        Common.ValueListWithFixedValues: true,
+        Common.ValueListWithFixedValues: false,
     )
 };
-
-annotate service.ProjectsMasterData with {
-    ID @Common.Text: {
-        $value                : projectName,
-        ![@UI.TextArrangement]: #TextOnly,
-    }
-};
-
 
 annotate AdminService.Employees actions {
     setEmployeeInactive       @(
@@ -264,38 +280,89 @@ annotate AdminService.Employees actions {
         ]}},
         Common.SideEffects     : {
             SourceEntities  : ['/Employees'],
-            TargetProperties: ['in/status'],
+            TargetProperties: ['in/status', 'in/deleteHidden'],
         }
     );
 
-    deleteEmployeePermanently @(
-        Core.OperationAvailable: {$edmJson: {$Eq: [
-            {$Path: 'in/status'},
-            'Inactive'
-        ]}},
-        Common.SideEffects     : {
-            SourceEntities  : ['/Employees'],
-            TargetEntities  : ['/Employees'],
-        },
-    );
+    // deleteEmployeePermanently @(
+    //     Core.OperationAvailable: {$edmJson: {$Eq: [
+    //         {$Path: 'in/status'},
+    //         'Inactive'
+    //     ]}},
+    //     Common.SideEffects     : {
+    //         SourceEntities: ['/Employees'],
+    //         TargetEntities: ['/Employees'],
+    //     },
+    // );
 };
+
+annotate AdminService.Employees with @(Capabilities.DeleteRestrictions: {
+    $Type    : 'Capabilities.DeleteRestrictionsType',
+    Deletable: deleteHidden,
+});
+
 
 annotate service.Employees with {
     emailId @Common.FieldControl: #ReadOnly
 };
+
 annotate service.Employees with {
-    annualLeavesUsed @Common.FieldControl : #ReadOnly
+    annualLeavesUsed @Common.FieldControl: #ReadOnly
 };
 
 annotate service.Employees with {
-    annualLeavesGranted @Common.FieldControl : #ReadOnly
+    annualLeavesGranted @Common.FieldControl: #ReadOnly
 };
 
 annotate service.Employees with {
-    remainingLeaves @Common.FieldControl : #ReadOnly
+    remainingLeaves @Common.FieldControl: #ReadOnly
 };
 
 annotate service.Projects with {
-    projectDescription @Common.FieldControl : #ReadOnly
+    projectDescription @Common.FieldControl: #ReadOnly
 };
 
+annotate service.ProjectsMasterData with {
+    ID @Common.Text: {
+        $value                : projectName,
+        ![@UI.TextArrangement]: #TextOnly
+    }
+};
+
+annotate service.LearningsMasterData with {
+    courseContact @Common.Label: '{i18n>Coursecontact}';
+    ID            @Common.Label: '{i18n>LearningDescription}';
+    initial       @Common.Label: '{i18n>Initial}';
+};
+
+annotate service.ProjectsMasterData with {
+    projectDescription @Common.Label: '{i18n>Projectdescription}';
+    ID                 @Common.Label: '{i18n>Projectname}';
+};
+
+annotate service.Ratings with {
+    reviewer @(
+        Common.Text                    : {
+            $value                : reviewer.emailId,
+            ![@UI.TextArrangement]: #TextOnly
+        },
+        Common.ValueList               : {
+            $Type         : 'Common.ValueListType',
+            CollectionPath: 'Employees',
+            Parameters    : [{
+                $Type            : 'Common.ValueListParameterInOut',
+                LocalDataProperty: reviewer_ID,
+                ValueListProperty: 'ID',
+            }, ],
+            Label         : '{i18n>ReviewerId}',
+        },
+        Common.ValueListWithFixedValues: true,
+    )
+};
+
+annotate service.Employees with {
+    ID @Common.Text: {
+        $value                : emailId,
+        ![@UI.TextArrangement]: #TextOnly,
+    }
+};

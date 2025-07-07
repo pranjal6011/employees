@@ -164,6 +164,9 @@
                     },
                     "DataField::ratings": {
                       "width": "25%"
+                    },
+                    "DataField::reviewer_ID": {
+                      "width": "25%"
                     }
                   }
                 },
@@ -206,9 +209,14 @@
     "registrationIds": [],
     "archeType": "transactional"
   },
-  "sap.fe": { 
-          "app": { 
-               "sideEffectsEventsInteractionType": "Confirmation" 
-          }
-     } 
+  "sap.fe": {
+    "app": {
+      "share": {
+        "showSendEmail": false,
+        "teams": {
+          "showMsTeamsOptions": false
+        }
+      }
+    }
+  }
 }

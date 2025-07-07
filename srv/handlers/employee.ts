@@ -1,5 +1,7 @@
 import { generateUniqueEmail } from "../utils/helpers";
 
+
+// Before hooks for employee creation and update
 export async function beforeCreate(req: any, Employees: any) {
   if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to create an employee.");
 
@@ -22,6 +24,7 @@ export async function beforeCreate(req: any, Employees: any) {
   if (exists) return req.reject(400, "Bank Account Number already exists.");
 }
 
+// Before hook for employee update
 export async function beforeUpdate(req: any, Employees: any, ProjectsMasterData: any) {
   if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to update an employee.");
 
@@ -91,6 +94,7 @@ export async function beforeUpdate(req: any, Employees: any, ProjectsMasterData:
   }
 }
 
+// Function to set an employee as inactive
 export async function onSetEmployeeInactive(req: any, Employees: any) {
   if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to mark an employee inactive.");
 
@@ -108,37 +112,40 @@ export async function onSetEmployeeInactive(req: any, Employees: any) {
   return await SELECT.one.from(Employees).where({ ID });
 }
 
-export async function onDeleteEmployeePermanently(req: any, Employees: any) {
-  if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to delete an employee permanently.");
+// Function to delete an employee permanently
+// export async function onDeleteEmployeePermanently(req: any, Employees: any) {
+//   if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to delete an employee permanently.");
 
-  const ID = req.params?.[0]?.ID;
-  if (!ID) return req.reject(400, "Missing Employee ID");
+//   const ID = req.params?.[0]?.ID;
+//   if (!ID) return req.reject(400, "Missing Employee ID");
 
-  const employee = await SELECT.one.from(Employees).where({ ID });
-  if (!employee) return req.reject(404, "Employee not found");
+//   const employee = await SELECT.one.from(Employees).where({ ID });
+//   if (!employee) return req.reject(404, "Employee not found");
 
-  if (employee.status !== "Inactive") {
-    return req.reject(400, "Only inactive employees can be deleted permanently.");
-  }
+//   if (employee.status !== "Inactive") {
+//     return req.reject(400, "Only inactive employees can be deleted permanently.");
+//   }
 
-  await DELETE.from(Employees).where({ ID });
-  return null;
-}
+//   await DELETE.from(Employees).where({ ID });
+//   return null;
+// }
 
+// Function to add remaining leaves after reading employee data
 export function afterReadAddRemainingLeaves(each: any) {
-  if (Array.isArray(each)) {
-    each.forEach(e => {
-      e.remainingLeaves = e.annualLeavesGranted - e.annualLeavesUsed;
-    });
-  } else {
-    each.remainingLeaves = each.annualLeavesGranted - each.annualLeavesUsed;
-  }
+  const compute = (e: any) => {
+    e.remainingLeaves = e.annualLeavesGranted - e.annualLeavesUsed;
+    e.deleteHidden = !(e.status === 'Active'); // Only show delete if Inactive
+  };
+
+  if (Array.isArray(each)) each.forEach(compute);
+  else compute(each);
 }
+
 
 export function registerEmployeeHooks(service: any, Employees: any, ProjectsMasterData: any) {
   service.before("CREATE", Employees, (req: any) => beforeCreate(req, Employees));
   service.before("UPDATE", Employees, (req: any) => beforeUpdate(req, Employees, ProjectsMasterData));
   service.on("setEmployeeInactive", Employees, (req: any) => onSetEmployeeInactive(req, Employees));
-  service.on("deleteEmployeePermanently", Employees, (req: any) => onDeleteEmployeePermanently(req, Employees));
+  // service.on("deleteEmployeePermanently", Employees, (req: any) => onDeleteEmployeePermanently(req, Employees));
   service.after("READ", Employees, afterReadAddRemainingLeaves);
 }

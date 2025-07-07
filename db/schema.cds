@@ -24,6 +24,8 @@ entity Employees : managed {
       annualLeavesGranted : Integer default 20;
       annualLeavesUsed    : Integer default 0;
       remainingLeaves     : Integer @cds.virtual;
+      deleteHidden        : Boolean @cds.virtual;
+
 
       projects            : Composition of many Projects
                               on projects.employee = $self;
@@ -45,7 +47,7 @@ entity Ratings : cuid {
   employee   : Association to Employees;
   year       : String(4);
   ratings    : Integer;
-  reviewerId : String(100);
+  reviewer : Association to Employees ;
 }
 
 entity Learnings : cuid {

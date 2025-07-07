@@ -1,3 +1,4 @@
+// Function
 export async function beforeDeleteLearningMaster(req: any, Learnings: any) {
   if (!req.user?.is("Admin")) {
     return req.reject(403, "You don't have access to delete learning master data.");

@@ -183,6 +183,13 @@
     "archeType": "transactional"
   },
   "sap.fe": {
-    "app": {}
+    "app": {
+      "share": {
+        "showSendEmail": false,
+        "teams": {
+          "showMsTeamsOptions": false
+        }
+      }
+    }
   }
 }

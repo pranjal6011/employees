@@ -102,14 +102,6 @@ describe("Employee Hook Tests", () => {
     expect(req.reject.calledWith(400, sinon.match("already inactive"))).to.be.true;
   });
 
-  it("should reject deleteEmployeePermanently if employee status is not Inactive", async () => {
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({ status: "Active" }),
-    });
-    await employeeHooks.onDeleteEmployeePermanently(req, "Employees");
-    expect(req.reject.calledWith(400, sinon.match("Only inactive"))).to.be.true;
-  });
-
   it("should reject any action if user is not Admin", async () => {
     req.user.is = () => false;
     await employeeHooks.beforeCreate(req, "Employees");
