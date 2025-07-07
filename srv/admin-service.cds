@@ -4,7 +4,7 @@ service AdminService @(requires: 'authenticated-user'){
     entity Employees           as projection on db.Employees
         actions {
             action setEmployeeInactive()       returns Employees;
-            action deleteEmployeePermanently() returns String;
+            action deleteEmployeePermanently() returns Employees;
         };
 
     entity Projects            as projection on db.Projects;
@@ -31,43 +31,43 @@ annotate AdminService.Employees with @(restrict: [
         to   : 'User'
     },
     {
-        grant: ['ALL'],
+        grant: ['*'],
         to   : 'Admin'
     }
 ]);
 
-annotate AdminService.Projects with @restrict: [
+annotate AdminService.Projects with @(restrict: [
     {
         grant: ['READ'],
         to   : 'User'
     },
     {
-        grant: ['ALL'],
+        grant: ['*'],
         to   : 'Admin'
     }
-];
+]);
 
-annotate AdminService.Ratings with @restrict: [
+annotate AdminService.Ratings with @(restrict: [
     {
         grant: ['READ'],
         to   : 'User'
     },
     {
-        grant: ['ALL'],
+        grant: ['*'],
         to   : 'Admin'
     }
-];
+]);
 
-annotate AdminService.Learnings with @restrict: [
+annotate AdminService.Learnings with @(restrict: [
     {
         grant: ['READ'],
         to   : 'User'
     },
     {
-        grant: ['ALL'],
+        grant: ['*'],
         to   : 'Admin'
     }
-];
+]);
 
 annotate AdminService.ProjectsMasterData with @(restrict: [
     {
@@ -75,26 +75,27 @@ annotate AdminService.ProjectsMasterData with @(restrict: [
         to   : 'User'
     },
     {
-        grant: ['ALL'],
+        grant: ['*'],
         to   : 'Admin'
     }
 ]);
 
-annotate AdminService.LearningsMasterData with @restrict: [
+annotate AdminService.LearningsMasterData with @(restrict: [
     {
         grant: ['READ'],
         to   : 'User'
     },
     {
-        grant: ['ALL'],
+        grant: ['*'],
         to   : 'Admin'
     }
-];
+]);
 
 // }
 
 annotate AdminService.Employees actions {
     setEmployeeInactive       @(
+        requires: 'Admin',
         Core.OperationAvailable: {$edmJson: {$Eq: [
             {$Path: 'in/status'},
             'Active'
@@ -106,13 +107,15 @@ annotate AdminService.Employees actions {
     );
 
     deleteEmployeePermanently @(
+        requires: 'Admin',
         Core.OperationAvailable: {$edmJson: {$Eq: [
             {$Path: 'in/status'},
             'Inactive'
         ]}},
+        
         Common.SideEffects     : {
             SourceEntities: ['/Employees'],
-            TargetEntities: ['/Employees']
+            TargetEntities: ['/Employees'],
         },
 
     );

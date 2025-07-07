@@ -11,5 +11,5 @@
     "skipLibCheck": true, 
     "types": ["@cap-js/cds-types", "node"]
   },
-  "include": ["srv/**/*.ts"]
+  "include": ["srv/**/*.ts", "app/**/*.ts", "test/**/*.ts"],
 }

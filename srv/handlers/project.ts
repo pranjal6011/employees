@@ -2,6 +2,9 @@ export function registerProjectHooks(service: any, Projects: any, ProjectsMaster
   // Prevent duplicate project assignments
   service.before("CREATE", Projects, async (req: any) => {
     try {
+      if (!req.user?.is('Admin')) {
+        return req.reject(403, "You don't have access to create a project assignment.");
+      }
       const { employee_ID, project_ID } = req.data;
 
       if (!employee_ID || !project_ID) {

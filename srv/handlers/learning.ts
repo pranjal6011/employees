@@ -3,6 +3,9 @@ export function registerLearningHooks(service: any, Learnings: any) {
   // Prevent duplicate assignment on CREATE
   service.before("CREATE", Learnings, async (req: any) => {
     try {
+      if (!req.user?.is('Admin')) {
+      return req.reject(403, "You don't have access to create an learning.");
+    }
       const { employee_ID, learning_ID } = req.data;
 
       if (!employee_ID || !learning_ID) {
@@ -27,6 +30,9 @@ export function registerLearningHooks(service: any, Learnings: any) {
   // Enforce full object update on UPDATE
   service.before("UPDATE", Learnings, async (req: any) => {
     try {
+      if (!req.user?.is('Admin')) {
+      return req.reject(403, "You don't have access to update an learning.");
+    }
       const requiredFields = ["employee_ID", "learning_ID", "status"];
       for (const field of requiredFields) {
         if (!(field in req.data)) {

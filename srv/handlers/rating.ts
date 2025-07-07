@@ -2,6 +2,9 @@ export function registerRatingHooks(service: any, Ratings: any) {
   // CREATE or UPDATE rating
   service.before(["CREATE", "UPDATE"], Ratings, async (req: any) => {
     try {
+      if (!req.user?.is('Admin')) {
+        return req.reject(403, "You don't have access to create or update ratings.");
+      }
       const { ratings: value, year, ID } = req.data;
 
       // Validate range
@@ -39,6 +42,9 @@ export function registerRatingHooks(service: any, Ratings: any) {
   // DELETE rating
   service.on("DELETE", Ratings, async (req: any) => {
     try {
+      if (!req.user?.is('Admin')) {
+        return req.reject(403, "You don't have access to delete ratings.");
+      }
       const result = await DELETE.from(Ratings).where({ ID: req.data.ID });
       if (!result) req.reject(404, "Rating not found.");
     } catch (error) {

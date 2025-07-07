@@ -205,5 +205,10 @@
   "sap.fiori": {
     "registrationIds": [],
     "archeType": "transactional"
-  }
+  },
+  "sap.fe": { 
+          "app": { 
+               "sideEffectsEventsInteractionType": "Confirmation" 
+          }
+     } 
 }

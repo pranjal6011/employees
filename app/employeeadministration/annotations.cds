@@ -277,7 +277,6 @@ annotate AdminService.Employees actions {
             SourceEntities  : ['/Employees'],
             TargetEntities  : ['/Employees'],
         },
-
     );
 };
 
