@@ -295,3 +295,7 @@ annotate service.Employees with {
     remainingLeaves @Common.FieldControl : #ReadOnly
 };
 
+annotate service.Projects with {
+    projectDescription @Common.FieldControl : #ReadOnly
+};
+

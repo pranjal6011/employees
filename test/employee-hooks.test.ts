@@ -76,7 +76,7 @@ describe("Employee Hook Tests", () => {
     (global as any).SELECT.one.from = () => ({
       where: async () => undefined,
     });
-    await employeeHooks.beforeUpdate(req, "Employees");
+    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
     expect(req.reject.calledWith(404, sinon.match("not found"))).to.be.true;
   });
 
@@ -90,7 +90,7 @@ describe("Employee Hook Tests", () => {
         bankAccountNumber: "12345678",
       }),
     });
-    await employeeHooks.beforeUpdate(req, "Employees");
+    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
     expect(req.reject.calledWith(400, sinon.match("Phone number"))).to.be.true;
   });
 
@@ -115,4 +115,100 @@ describe("Employee Hook Tests", () => {
     await employeeHooks.beforeCreate(req, "Employees");
     expect(req.reject.calledWith(403, sinon.match("access"))).to.be.true;
   });
+
+  it("should reject UPDATE if ratings have duplicate years", async () => {
+    req.data.ratings = [
+      { year: "2023", ratings: 4 },
+      { year: "2023", ratings: 5 },
+    ];
+
+    (global as any).SELECT.one.from = () => ({
+      where: async () => ({
+        ID: "E001",
+        firstName: "John",
+        lastName: "Doe",
+        bankAccountNumber: "12345678",
+      }),
+    });
+
+    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("Duplicate rating entry"))).to.be.true;
+  });
+
+  it("should reject UPDATE if rating is out of range", async () => {
+    req.data.ratings = [
+      { year: "2023", ratings: 6 },
+    ];
+
+    (global as any).SELECT.one.from = () => ({
+      where: async () => ({
+        ID: "E001",
+        firstName: "John",
+        lastName: "Doe",
+        bankAccountNumber: "12345678",
+      }),
+    });
+
+    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("must be between 1 and 5"))).to.be.true;
+  });
+
+  it("should reject UPDATE if same project is assigned twice", async () => {
+    req.data.projects = [
+      { project_ID: "P001" },
+      { project_ID: "P001" },
+    ];
+
+    const Employees = "Employees";
+    const ProjectsMasterData = "ProjectsMasterData";
+
+    const selectStub = sinon.stub();
+
+    // Stub for existing employee lookup
+    selectStub.withArgs(Employees).returns({
+      where: async () => ({
+        ID: "E001",
+        firstName: "John",
+        lastName: "Doe",
+        bankAccountNumber: "12345678",
+      }),
+    });
+
+    // Stub for project master data
+    selectStub.withArgs(ProjectsMasterData).returns({
+      where: async () => ({
+        projectDescription: "Project Alpha",
+      }),
+    });
+
+    (global as any).SELECT = {
+      one: { from: selectStub },
+    };
+
+    await employeeHooks.beforeUpdate(req, Employees, ProjectsMasterData);
+    expect(req.reject.calledWith(400, sinon.match("already assigned"))).to.be.true;
+  });
+
+
+
+  it("should reject UPDATE if same learning is assigned twice", async () => {
+    req.data.learnings = [
+      { learning_ID: "L001" },
+      { learning_ID: "L001" },
+    ];
+
+    (global as any).SELECT.one.from = () => ({
+      where: async () => ({
+        ID: "E001",
+        firstName: "John",
+        lastName: "Doe",
+        bankAccountNumber: "12345678",
+      }),
+    });
+
+    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("Learning is already assigned"))).to.be.true;
+
+  });
+
 });
