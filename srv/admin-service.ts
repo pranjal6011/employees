@@ -5,7 +5,7 @@ import { registerLearningmasterHooks } from "./handlers/learningmasterdata";
 export default cds.service.impl(async function () {
   const { Employees, Learnings, LearningsMasterData, Projects, ProjectsMasterData} = this.entities;
 
-  registerEmployeeHooks(this, Employees, ProjectsMasterData);
+  registerEmployeeHooks(this, Employees, ProjectsMasterData, LearningsMasterData);
   registerProjectmasterHooks(this, Projects, ProjectsMasterData);
   registerLearningmasterHooks(this, Learnings, LearningsMasterData);
 

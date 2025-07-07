@@ -52,24 +52,29 @@ describe("Employee Hook Tests", () => {
     sinon.restore();
   });
 
-  it("should reject CREATE with invalid phone number", async () => {
+  it("should reject CREATE with invalid phone number(not exactly 10 digit)", async () => {
+    req.data.phoneNumber = "98765432";
+    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits and numeric only"))).to.be.true;
+  });
+  it("should reject CREATE with invalid phone number(Containing non-digit value)", async () => {
     req.data.phoneNumber = "abc123";
-    await employeeHooks.beforeCreate(req, "Employees");
-    expect(req.reject.calledWith(400, sinon.match("Phone number"))).to.be.true;
+    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits and numeric only"))).to.be.true;
   });
 
-  it("should reject CREATE with invalid bank account number", async () => {
+  it("should reject CREATE with invalid bank account number(Contining non-digit value)", async () => {
     req.data.bankAccountNumber = "abcd123";
-    await employeeHooks.beforeCreate(req, "Employees");
-    expect(req.reject.calledWith(400, sinon.match("Bank Account Number"))).to.be.true;
+    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("Bank Account Number must contain digits only"))).to.be.true;
   });
 
   it("should reject CREATE if bank account already exists", async () => {
     (global as any).SELECT.one.from = () => ({
       where: async () => ({ ID: "E001" }),
     });
-    await employeeHooks.beforeCreate(req, "Employees");
-    expect(req.reject.calledWith(400, sinon.match("already exists"))).to.be.true;
+    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    expect(req.reject.calledWith(400, sinon.match("Bank Account Number already exists"))).to.be.true;
   });
 
   it("should reject UPDATE if employee not found", async () => {
@@ -91,7 +96,7 @@ describe("Employee Hook Tests", () => {
       }),
     });
     await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("Phone number"))).to.be.true;
+    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits and numeric only"))).to.be.true;
   });
 
   it("should reject setEmployeeInactive if already inactive", async () => {
@@ -99,13 +104,13 @@ describe("Employee Hook Tests", () => {
       where: async () => ({ status: "Inactive" }),
     });
     await employeeHooks.onSetEmployeeInactive(req, "Employees");
-    expect(req.reject.calledWith(400, sinon.match("already inactive"))).to.be.true;
+    expect(req.reject.calledWith(400, sinon.match("Employee is already inactive"))).to.be.true;
   });
 
   it("should reject any action if user is not Admin", async () => {
     req.user.is = () => false;
-    await employeeHooks.beforeCreate(req, "Employees");
-    expect(req.reject.calledWith(403, sinon.match("access"))).to.be.true;
+    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    expect(req.reject.calledWith(403, sinon.match("You don't have access"))).to.be.true;
   });
 
   it("should reject UPDATE if ratings have duplicate years", async () => {
