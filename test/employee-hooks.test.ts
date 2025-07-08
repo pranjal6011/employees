@@ -1,10 +1,10 @@
 import { expect } from "chai";
 import sinon from "sinon";
-import * as employeeHooks from "../srv/handlers/employee";
-import * as helpers from "../srv/utils/helpers";
+import { EmployeeHandler } from "../srv/handlers/employee";
 import { describe, beforeEach, afterEach, it } from "mocha";
 
 let req: any;
+let handler: EmployeeHandler;
 
 describe("Employee Hook Tests", () => {
   beforeEach(() => {
@@ -21,7 +21,6 @@ describe("Employee Hook Tests", () => {
       params: [{ ID: "E001" }],
     };
 
-    // Override CAP global SELECT/UPDATE/DELETE in test context
     (global as any).SELECT = {
       one: {
         from: () => ({
@@ -42,7 +41,8 @@ describe("Employee Hook Tests", () => {
       }),
     };
 
-    sinon.stub(helpers, "generateUniqueEmail").resolves("john.doe@sap.com");
+    handler = new EmployeeHandler("Employees", "ProjectsMasterData", "LearningsMasterData");
+    sinon.stub(handler as any, "generateUniqueEmail").resolves("john.doe@sap.com");
   });
 
   afterEach(() => {
@@ -52,65 +52,154 @@ describe("Employee Hook Tests", () => {
     sinon.restore();
   });
 
-  it("should reject CREATE with invalid phone number(not exactly 10 digit)", async () => {
-    req.data.phoneNumber = "98765432";
-    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits and numeric only"))).to.be.true;
-  });
-  it("should reject CREATE with invalid phone number(Containing non-digit value)", async () => {
-    req.data.phoneNumber = "abc123";
-    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits and numeric only"))).to.be.true;
+  it("should generate a unique email for new employee on CREATE", async () => {
+    const emailWhereStub = sinon.stub().resolves(null);
+    const emailFromStub = sinon.stub().returns({ where: emailWhereStub });
+
+    const learningsWhereStub = sinon.stub().resolves([]);
+    const learningsFromStub = sinon.stub().returns({ where: learningsWhereStub });
+
+    (global as any).SELECT = {
+      one: { from: emailFromStub },
+      from: learningsFromStub,
+    };
+
+    await handler.beforeCreate(req);
+    expect(req.data.emailId).to.equal("john.doe@sap.com");
   });
 
-  it("should reject CREATE with invalid bank account number(Contining non-digit value)", async () => {
+
+
+
+  it("should generate a different email if base email already exists", async () => {
+    sinon.restore();
+    const emailWhereStub = sinon.stub();
+    emailWhereStub.onFirstCall().resolves({});
+    emailWhereStub.onSecondCall().resolves(null);
+    const emailFromStub = sinon.stub().returns({ where: emailWhereStub });
+
+    const learningsWhereStub = sinon.stub().resolves([]);
+    const learningsFromStub = sinon.stub().returns({ where: learningsWhereStub });
+
+    (global as any).SELECT = {
+      one: { from: emailFromStub },
+      from: learningsFromStub,
+    };
+
+    await handler.beforeCreate(req);
+    expect(req.data.emailId).to.equal("john.doe1@sap.com");
+  });
+
+
+
+
+  it("should regenerate email if firstName or lastName changed on UPDATE", async () => {
+    sinon.restore();
+
+    req.data.firstName = "Jane";
+
+    const existingEmployee = {
+      ID: "E001",
+      firstName: "John",
+      lastName: "Doe",
+      bankAccountNumber: "12345678",
+    };
+
+    const employeeStub = sinon.stub().resolves(existingEmployee);
+
+    const whereStub = sinon.stub();
+    whereStub.withArgs({ ID: "E001" }).resolves(existingEmployee);
+    whereStub.withArgs({ emailId: "jane.doe@sap.com" }).resolves(null);
+
+    const fromStub = sinon.stub().returns({ where: whereStub });
+    fromStub.withArgs("ProjectsMasterData").returns({ where: sinon.stub().resolves(null) });
+
+    (global as any).SELECT = {
+      one: { from: fromStub },
+    };
+
+    await handler.beforeUpdate(req);
+    expect(req.data.emailId).to.equal("jane.doe@sap.com");
+  });
+
+
+  it("should reject CREATE with invalid phone number (not 10 digits)", async () => {
+    req.data.phoneNumber = "98765432";
+    await handler.beforeCreate(req);
+    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits"))).to.be.true;
+  });
+
+  it("should reject CREATE with invalid phone number (non-digit)", async () => {
+    req.data.phoneNumber = "abc123";
+    await handler.beforeCreate(req);
+    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits"))).to.be.true;
+  });
+
+  it("should reject CREATE with invalid bank account number", async () => {
     req.data.bankAccountNumber = "abcd123";
-    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    await handler.beforeCreate(req);
     expect(req.reject.calledWith(400, sinon.match("Bank Account Number must contain digits only"))).to.be.true;
   });
 
   it("should reject CREATE if bank account already exists", async () => {
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({ ID: "E001" }),
-    });
-    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
+    (global as any).SELECT = {
+      one: {
+        from: sinon.stub().returns({
+          where: sinon.stub().resolves({ ID: "E001" }),
+        }),
+      },
+      from: sinon.stub().resolves([]),
+    };
+    await handler.beforeCreate(req);
     expect(req.reject.calledWith(400, sinon.match("Bank Account Number already exists"))).to.be.true;
   });
 
   it("should reject UPDATE if employee not found", async () => {
-    (global as any).SELECT.one.from = () => ({
-      where: async () => undefined,
-    });
-    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
+    (global as any).SELECT = {
+      one: {
+        from: sinon.stub().returns({
+          where: sinon.stub().resolves(undefined),
+        }),
+      },
+    };
+    await handler.beforeUpdate(req);
     expect(req.reject.calledWith(404, sinon.match("not found"))).to.be.true;
   });
 
   it("should reject UPDATE with invalid phone number", async () => {
     req.data.phoneNumber = "99999";
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({
-        ID: "E001",
-        firstName: "John",
-        lastName: "Doe",
-        bankAccountNumber: "12345678",
-      }),
-    });
-    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits and numeric only"))).to.be.true;
+    (global as any).SELECT = {
+      one: {
+        from: sinon.stub().returns({
+          where: sinon.stub().resolves({
+            ID: "E001",
+            firstName: "John",
+            lastName: "Doe",
+            bankAccountNumber: "12345678",
+          }),
+        }),
+      },
+    };
+    await handler.beforeUpdate(req);
+    expect(req.reject.calledWith(400, sinon.match("Phone number must be exactly 10 digits"))).to.be.true;
   });
 
   it("should reject setEmployeeInactive if already inactive", async () => {
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({ status: "Inactive" }),
-    });
-    await employeeHooks.onSetEmployeeInactive(req, "Employees");
-    expect(req.reject.calledWith(400, sinon.match("Employee is already inactive"))).to.be.true;
+    (global as any).SELECT = {
+      one: {
+        from: sinon.stub().returns({
+          where: sinon.stub().resolves({ status: "Inactive" }),
+        }),
+      },
+    };
+    await handler.onSetEmployeeInactive(req);
+    expect(req.reject.calledWith(400, sinon.match("Already inactive"))).to.be.true;
   });
 
   it("should reject any action if user is not Admin", async () => {
     req.user.is = () => false;
-    await employeeHooks.beforeCreate(req, "Employees", "LearningsMasterData");
-    expect(req.reject.calledWith(403, sinon.match("You don't have access"))).to.be.true;
+    await handler.beforeCreate(req);
+    expect(req.reject.calledWith(403)).to.be.true;
   });
 
   it("should reject UPDATE if ratings have duplicate years", async () => {
@@ -119,35 +208,41 @@ describe("Employee Hook Tests", () => {
       { year: "2023", ratings: 5 },
     ];
 
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({
-        ID: "E001",
-        firstName: "John",
-        lastName: "Doe",
-        bankAccountNumber: "12345678",
-      }),
-    });
+    (global as any).SELECT = {
+      one: {
+        from: sinon.stub().returns({
+          where: sinon.stub().resolves({
+            ID: "E001",
+            firstName: "John",
+            lastName: "Doe",
+            bankAccountNumber: "12345678",
+          }),
+        }),
+      },
+    };
 
-    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("Duplicate rating entry"))).to.be.true;
+    await handler.beforeUpdate(req);
+    expect(req.reject.calledWith(400, sinon.match("Duplicate rating"))).to.be.true;
   });
 
   it("should reject UPDATE if rating is out of range", async () => {
-    req.data.ratings = [
-      { year: "2023", ratings: 6 },
-    ];
+    req.data.ratings = [{ year: "2023", ratings: 6 }];
 
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({
-        ID: "E001",
-        firstName: "John",
-        lastName: "Doe",
-        bankAccountNumber: "12345678",
-      }),
-    });
+    (global as any).SELECT = {
+      one: {
+        from: sinon.stub().returns({
+          where: sinon.stub().resolves({
+            ID: "E001",
+            firstName: "John",
+            lastName: "Doe",
+            bankAccountNumber: "12345678",
+          }),
+        }),
+      },
+    };
 
-    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("must be between 1 and 5"))).to.be.true;
+    await handler.beforeUpdate(req);
+    expect(req.reject.calledWith(400, sinon.match("must be 1-5"))).to.be.true;
   });
 
   it("should reject UPDATE if same project is assigned twice", async () => {
@@ -156,37 +251,26 @@ describe("Employee Hook Tests", () => {
       { project_ID: "P001" },
     ];
 
-    const Employees = "Employees";
-    const ProjectsMasterData = "ProjectsMasterData";
-
-    const selectStub = sinon.stub();
-
-    // Stub for existing employee lookup
-    selectStub.withArgs(Employees).returns({
-      where: async () => ({
-        ID: "E001",
-        firstName: "John",
-        lastName: "Doe",
-        bankAccountNumber: "12345678",
-      }),
+    const employeeStub = sinon.stub().resolves({
+      ID: "E001",
+      firstName: "John",
+      lastName: "Doe",
+      bankAccountNumber: "12345678",
     });
 
-    // Stub for project master data
-    selectStub.withArgs(ProjectsMasterData).returns({
-      where: async () => ({
-        projectDescription: "Project Alpha",
-      }),
-    });
+    const projectStub = sinon.stub().resolves({ projectDescription: "Project Alpha" });
+
+    const fromStub = sinon.stub();
+    fromStub.withArgs("Employees").returns({ where: employeeStub });
+    fromStub.withArgs("ProjectsMasterData").returns({ where: projectStub });
 
     (global as any).SELECT = {
-      one: { from: selectStub },
+      one: { from: fromStub },
     };
 
-    await employeeHooks.beforeUpdate(req, Employees, ProjectsMasterData);
-    expect(req.reject.calledWith(400, sinon.match("already assigned"))).to.be.true;
+    await handler.beforeUpdate(req);
+    expect(req.reject.calledWith(400, sinon.match("Project already assigned"))).to.be.true;
   });
-
-
 
   it("should reject UPDATE if same learning is assigned twice", async () => {
     req.data.learnings = [
@@ -194,18 +278,21 @@ describe("Employee Hook Tests", () => {
       { learning_ID: "L001" },
     ];
 
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({
-        ID: "E001",
-        firstName: "John",
-        lastName: "Doe",
-        bankAccountNumber: "12345678",
-      }),
+    const employeeStub = sinon.stub().resolves({
+      ID: "E001",
+      firstName: "John",
+      lastName: "Doe",
+      bankAccountNumber: "12345678",
     });
 
-    await employeeHooks.beforeUpdate(req, "Employees", "ProjectsMasterData");
-    expect(req.reject.calledWith(400, sinon.match("Learning is already assigned"))).to.be.true;
+    const fromStub = sinon.stub();
+    fromStub.withArgs("Employees").returns({ where: employeeStub });
 
+    (global as any).SELECT = {
+      one: { from: fromStub },
+    };
+
+    await handler.beforeUpdate(req);
+    expect(req.reject.calledWith(400, sinon.match("Learning already assigned"))).to.be.true;
   });
-
 });

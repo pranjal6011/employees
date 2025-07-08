@@ -1,11 +1,12 @@
 import { expect } from "chai";
 import sinon from "sinon";
-import * as projectHooks from "../srv/handlers/projectmasterdata";
+import { describe, beforeEach, afterEach, it } from "mocha";
+import { ProjectMasterHandler } from "../srv/handlers/projectmasterdata";
 
+let req: any;
+let handler: ProjectMasterHandler;
 
-describe("Project MasterData Hook Tests", () => {
-  let req: any;
-
+describe("ProjectMasterHandler Tests", () => {
   beforeEach(() => {
     req = {
       data: { ID: "P001" },
@@ -20,6 +21,8 @@ describe("Project MasterData Hook Tests", () => {
         }),
       },
     };
+
+    handler = new ProjectMasterHandler("Projects", "ProjectsMasterData");
   });
 
   afterEach(() => {
@@ -27,27 +30,39 @@ describe("Project MasterData Hook Tests", () => {
     sinon.restore();
   });
 
-  it("should reject DELETE if project is still assigned to employee", async () => {
-    (global as any).SELECT = {
-      one: {
-        from: () => ({
-          where: async () => ({ ID: "P001" }),
-        }),
+  const getHookFromRegister = (hookType: string, target: string) => {
+    const hookMap: Record<string, any> = {};
+    const mockService = {
+      before: (events: any, entity: any, fn: any) => {
+        const key = `${Array.isArray(events) ? events.join(",") : events}_${entity}`;
+        hookMap[key] = fn;
       },
     };
-    await projectHooks.beforeDeleteProjectMaster(req, "Projects");
+    handler.register(mockService);
+    return hookMap[`${hookType}_${target}`];
+  };
+
+  it("should reject DELETE if project is still assigned to employee", async () => {
+    (global as any).SELECT.one.from = () => ({
+      where: async () => ({ ID: "P001" }),
+    });
+
+    const deleteHook = getHookFromRegister("DELETE", "ProjectsMasterData");
+    await deleteHook(req);
     expect(req.reject.calledWith(400, sinon.match("still assigned"))).to.be.true;
   });
 
   it("should reject DELETE if user is not admin", async () => {
     req.user.is = () => false;
-    await projectHooks.beforeDeleteProjectMaster(req, "Projects");
+    const deleteHook = getHookFromRegister("DELETE", "ProjectsMasterData");
+    await deleteHook(req);
     expect(req.reject.calledWith(403)).to.be.true;
   });
 
-  it("should reject CREATE if user is not admin", async () => {
+  it("should reject CREATE or UPDATE if user is not admin", async () => {
     req.user.is = () => false;
-    await projectHooks.beforeCreateOrUpdateProjectMaster(req);
+    const createOrUpdateHook = getHookFromRegister("CREATE,UPDATE", "ProjectsMasterData");
+    await createOrUpdateHook(req);
     expect(req.reject.calledWith(403)).to.be.true;
   });
 });
