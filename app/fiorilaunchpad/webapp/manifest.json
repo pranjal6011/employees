@@ -88,8 +88,7 @@
         "type": "View",
         "viewType": "XML",
         "path": "fiorilaunchpad.view",
-        "async": true,
-        "viewPath": "fiorilaunchpad.view"
+        "async": true
       },
       "routes": [
         {
