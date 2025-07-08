@@ -1,0 +1,55 @@
+<mvc:View controllerName="fiorilaunchpad.controller.fioriLaunchpad"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns="sap.m">
+    <Page id="page" title="{i18n>title}">
+        <FlexBox id="_IDGenFlexBox" wrap="Wrap" direction="Row" justifyContent="Start" class="sapUiSmallMargin">
+
+            <!-- Employee Management Tile -->
+            <GenericTile id="tileEmployee"
+                class="sapUiTinyMargin"
+                header="Employee Management"
+                subheader="Manage employees"
+                press="onTilePress"
+                frameType="OneByOne">
+                <customData>
+                    <core:CustomData key="link" value="/employeeadministration/index.html" />
+                </customData>
+                <TileContent id="_IDGenTileContent">
+                    <NumericContent id="_IDGenNumericContent1" icon="sap-icon://employee" value=" " />
+                </TileContent>
+            </GenericTile>
+
+            <!-- Project Master Data Tile -->
+            <GenericTile id="tileProjects"
+                class="sapUiTinyMargin"
+                header="Project Master Data"
+                subheader="Manage Projects"
+                press="onTilePress"
+                frameType="OneByOne">
+                <customData>
+                    <core:CustomData key="link" value="/projectmasterdata/index.html" />
+                </customData>
+                <TileContent id="_IDGenTileContent1">
+                    <NumericContent id="_IDGenNumericContent2" icon="sap-icon://business-objects-experience" value=" " />
+                </TileContent>
+            </GenericTile>
+
+            <!-- Learning Master Data Tile -->
+            <GenericTile id="tileLearnings"
+                class="sapUiTinyMargin"
+                header="Learning Master Data"
+                subheader="Manage Learnings"
+                press="onTilePress"
+                frameType="OneByOne">
+                <customData>
+                    <core:CustomData key="link" value="/learningmasterdata/index.html" />
+                </customData>
+                <TileContent id="_IDGenTileContent2">
+                    <NumericContent id="_IDGenNumericContent3" icon="sap-icon://education" value=" " />
+                </TileContent>
+            </GenericTile>
+
+        </FlexBox>
+    </Page>
+</mvc:View>

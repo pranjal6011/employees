@@ -6,12 +6,16 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@sap/cds": "^6.8.2",
     "@sap/cds-compiler": "^6.0.14",
+    "@sap/eslint-plugin-ui5-jsdocs": "^2.0.5",
+    "@sapui5/ts-types": "^1.92.2",
     "express": "^4"
   },
   "devDependencies": {
     "@cap-js/cds-types": "^0.9.0",
     "@cap-js/sqlite": "^1",
+    "@openui5/ts-types-esm": "^1.138.0",
     "@sap/cds": "^8.9.4",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
@@ -20,7 +24,7 @@
     "@types/supertest": "^6.0.3",
     "cds-plugin-ui5": "^0.9.3",
     "chai": "^5.2.0",
-    "eslint": "^9.30.0",
+    "eslint": "^7.32.0",
     "mocha": "^11.7.1",
     "sinon": "^21.0.0",
     "supertest": "^7.1.1",
@@ -36,7 +40,8 @@
     "watch-employees": "cds watch --open employees/index.html?sap-ui-xx-viewCache=false --livereload false",
     "watch-projectmasterdata": "cds watch --open projectmasterdata/index.html?sap-ui-xx-viewCache=false --livereload false",
     "watch-learningmasterdata": "cds watch --open learningmasterdata/index.html?sap-ui-xx-viewCache=false --livereload false",
-    "watch-employeeadministration": "cds watch --open employeeadministration/index.html?sap-ui-xx-viewCache=false --livereload false"
+    "watch-employeeadministration": "cds watch --open employeeadministration/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch-fiorilaunchpad": "cds watch --open fiorilaunchpad/index.html?sap-ui-xx-viewCache=false --livereload false"
   },
   "workspaces": [
     "app/*"
