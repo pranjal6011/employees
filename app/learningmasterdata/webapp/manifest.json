@@ -150,7 +150,8 @@
                   }
                 }
               },
-              "initialLoad": "Enabled"
+              "initialLoad": "Enabled",
+              "hideFilterBar": false
             }
           },
           "controlAggregation": "beginColumnPages",

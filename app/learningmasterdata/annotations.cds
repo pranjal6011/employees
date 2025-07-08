@@ -43,18 +43,31 @@ annotate service.LearningsMasterData with @(
     UI.HeaderInfo : {
         Title : {
             $Type : 'UI.DataField',
-            Value : ID,
+            Value : 'Learning Details',
         },
         TypeName : '',
         TypeNamePlural : '',
     },
+    UI.SelectionFields : [
+        courseDescription,
+        courseContact,
+        initial,
+        availability,
+    ],
 );
 
 annotate service.LearningsMasterData with {
-    courseDescription @Common.FieldControl : #Mandatory
+    courseDescription @(
+        Common.FieldControl : #Mandatory,
+        Common.Label : '{i18n>Coursedescription}',
+    )
 };
 
 annotate service.LearningsMasterData with {
     courseContact @Common.FieldControl : #Mandatory
+};
+
+annotate service.LearningsMasterData with {
+    availability @Common.Label : '{i18n>Availability}'
 };
 

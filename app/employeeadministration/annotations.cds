@@ -136,12 +136,30 @@ annotate service.Employees with @(
             Label : '{i18n>MarkInactive}',
         }
     ],
+    UI.HeaderInfo : {
+        Title : {
+            $Type : 'UI.DataField',
+            Value : 'Employee Details',
+        },
+        TypeName : '',
+        TypeNamePlural : '',
+    },
+    UI.SelectionFields : [
+        firstName,
+        lastName,
+        emailId,
+        bankName,
+        bankAccountNumber,
+    ],
 
 );
 
 
 annotate service.Employees with {
-    firstName @Common.FieldControl: #Mandatory
+    firstName @(
+        Common.FieldControl: #Mandatory,
+        Common.Label : '{i18n>Firstname}',
+    )
 };
 
 annotate service.Employees with {
@@ -153,7 +171,10 @@ annotate service.Employees with {
 };
 
 annotate service.Employees with {
-    bankAccountNumber @Common.FieldControl: #Mandatory
+    bankAccountNumber @(
+        Common.FieldControl: #Mandatory,
+        Common.Label : '{i18n>Bankaccountnumber}',
+    )
 };
 
 annotate service.Ratings with @(UI.LineItem #i18nRatings: [
@@ -253,17 +274,18 @@ annotate service.Projects with {
             CollectionPath: 'ProjectsMasterData',
             Parameters    : [
                 {
-                    $Type            : 'Common.ValueListParameterInOut',
-                    LocalDataProperty: project_ID,
-                    ValueListProperty: 'ID',
+                    $Type : 'Common.ValueListParameterInOut',
+                    LocalDataProperty : project_ID,
+                    ValueListProperty : 'ID',
                 },
                 {
-                    $Type            : 'Common.ValueListParameterDisplayOnly',
-                    ValueListProperty: 'projectName',
+                    $Type : 'Common.ValueListParameterOut',
+                    ValueListProperty : 'projectName',
+                    LocalDataProperty : project.projectDescription,
                 },
                 {
-                    $Type            : 'Common.ValueListParameterDisplayOnly',
-                    ValueListProperty: 'projectDescription',
+                    $Type : 'Common.ValueListParameterDisplayOnly',
+                    ValueListProperty : 'projectDescription',
                 },
             ],
             Label         : '{i18n>Projectname}',
@@ -283,17 +305,6 @@ annotate AdminService.Employees actions {
             TargetProperties: ['in/status', 'in/deleteHidden'],
         }
     );
-
-    // deleteEmployeePermanently @(
-    //     Core.OperationAvailable: {$edmJson: {$Eq: [
-    //         {$Path: 'in/status'},
-    //         'Inactive'
-    //     ]}},
-    //     Common.SideEffects     : {
-    //         SourceEntities: ['/Employees'],
-    //         TargetEntities: ['/Employees'],
-    //     },
-    // );
 };
 
 annotate AdminService.Employees with @(Capabilities.DeleteRestrictions: {
@@ -303,7 +314,10 @@ annotate AdminService.Employees with @(Capabilities.DeleteRestrictions: {
 
 
 annotate service.Employees with {
-    emailId @Common.FieldControl: #ReadOnly
+    emailId @(
+        Common.FieldControl: #ReadOnly,
+        Common.Label : '{i18n>Emailid}',
+    )
 };
 
 annotate service.Employees with {
@@ -365,4 +379,11 @@ annotate service.Employees with {
         $value                : emailId,
         ![@UI.TextArrangement]: #TextOnly,
     }
+};
+annotate service.Employees with {
+    lastName @Common.Label : '{i18n>Lastname}'
+};
+
+annotate service.Employees with {
+    bankName @Common.Label : '{i18n>Bankname}'
 };

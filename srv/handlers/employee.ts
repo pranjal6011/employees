@@ -117,6 +117,7 @@ export class EmployeeHandler {
       e.remainingLeaves = e.annualLeavesGranted - e.annualLeavesUsed;
       e.deleteHidden = e.status === 'Inactive';
     };
+    
     Array.isArray(each) ? each.forEach(compute) : compute(each);
   }
 

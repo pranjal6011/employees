@@ -25,7 +25,7 @@ annotate service.ProjectsMasterData with @(
         Data : [
             {
                 $Type : 'UI.DataField',
-                Value : ID,
+                Value : 'Project Details',
                 Label : 'ID',
             },
             {
@@ -48,10 +48,17 @@ annotate service.ProjectsMasterData with @(
         TypeName : '',
         TypeNamePlural : '',
     },
+    UI.SelectionFields : [
+        projectName,
+        projectDescription,
+    ],
 );
 
 annotate service.ProjectsMasterData with {
-    projectName @Common.FieldControl : #Mandatory
+    projectName @(
+        Common.FieldControl : #Mandatory,
+        Common.Label : '{i18n>Projectname}',
+    )
 };
 
 annotate service.ProjectsMasterData with {
