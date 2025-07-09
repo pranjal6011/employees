@@ -6,7 +6,7 @@ import { describe, beforeEach, afterEach, it } from "mocha";
 let req: any;
 let handler: EmployeeHandler;
 
-describe("Employee Hook Tests", () => {
+describe("Employee Handler Tests", () => {
   beforeEach(() => {
     req = {
       data: {
@@ -68,29 +68,28 @@ describe("Employee Hook Tests", () => {
     expect(req.data.emailId).to.equal("john.doe@sap.com");
   });
 
-
-
-
   it("should generate a different email if base email already exists", async () => {
-    sinon.restore();
-    const emailWhereStub = sinon.stub();
-    emailWhereStub.onFirstCall().resolves({});
-    emailWhereStub.onSecondCall().resolves(null);
-    const emailFromStub = sinon.stub().returns({ where: emailWhereStub });
+    sinon.restore(); // use real generateUniqueEmail
+    handler = new EmployeeHandler("Employees", "ProjectsMasterData", "LearningsMasterData");
 
-    const learningsWhereStub = sinon.stub().resolves([]);
-    const learningsFromStub = sinon.stub().returns({ where: learningsWhereStub });
+    // Mock SELECT.one.from("Employees").where(...) to simulate email + bank checks
+    const employeeWhereStub = sinon.stub().callsFake((condition) => {
+      if (condition.emailId === "john.doe@sap.com") return Promise.resolve({ emailId: "john.doe@sap.com" });
+      if (condition.emailId === "john.doe1@sap.com") return Promise.resolve(null);
+      if (condition.bankAccountNumber === "12345678") return Promise.resolve(null);
+      return Promise.resolve(null);
+    });
 
     (global as any).SELECT = {
-      one: { from: emailFromStub },
-      from: learningsFromStub,
+      one: {
+        from: sinon.stub().returns({ where: employeeWhereStub }),
+      },
+      from: sinon.stub().withArgs("LearningsMasterData").returns({ where: sinon.stub().resolves([]) }),
     };
 
     await handler.beforeCreate(req);
     expect(req.data.emailId).to.equal("john.doe1@sap.com");
   });
-
-
 
 
   it("should regenerate email if firstName or lastName changed on UPDATE", async () => {
@@ -274,8 +273,8 @@ describe("Employee Hook Tests", () => {
 
   it("should reject UPDATE if same learning is assigned twice", async () => {
     req.data.learnings = [
-      { learning_ID: "L001" },
-      { learning_ID: "L001" },
+      { learning_ID: "L001", status: "In Progress" },
+      { learning_ID: "L001", status: "In Progress" },
     ];
 
     const employeeStub = sinon.stub().resolves({
@@ -287,6 +286,7 @@ describe("Employee Hook Tests", () => {
 
     const fromStub = sinon.stub();
     fromStub.withArgs("Employees").returns({ where: employeeStub });
+    fromStub.withArgs("ProjectsMasterData").returns({ where: sinon.stub().resolves(null) });
 
     (global as any).SELECT = {
       one: { from: fromStub },
@@ -295,4 +295,5 @@ describe("Employee Hook Tests", () => {
     await handler.beforeUpdate(req);
     expect(req.reject.calledWith(400, sinon.match("Learning already assigned"))).to.be.true;
   });
+
 });

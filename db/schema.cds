@@ -1,5 +1,4 @@
 using {
-  cuid,
   managed
 } from '@sap/cds/common';
 
@@ -35,14 +34,14 @@ entity Employees : managed {
                               on ratings.employee = $self;
 }
 
-entity Projects : cuid {
+entity Projects : managed {
   key ID: UUID @Core.Computed;
   employee           : Association to Employees;
   project            : Association to ProjectsMasterData;
   projectDescription : String(255);
 }
 
-entity Ratings : cuid {
+entity Ratings : managed {
   key ID: UUID @Core.Computed;
   employee   : Association to Employees;
   year       : String(4);
@@ -50,14 +49,21 @@ entity Ratings : cuid {
   reviewer : Association to Employees ;
 }
 
-entity Learnings : cuid {
+type LearningStatusEnum : String enum {
+  NotYetStarted = 'Not Yet Started';
+  InProgress    = 'In Progress';
+  Completed     = 'Completed';
+}
+
+
+entity Learnings : managed {
   key ID: UUID @Core.Computed;
   employee : Association to Employees;
   learning : Association to LearningsMasterData;
-  status   : String(50) default 'Not Yet Started';
+  status   : LearningStatusEnum default 'Not Yet Started';
 }
 
-entity LearningsMasterData : cuid {
+entity LearningsMasterData : managed {
   key ID: UUID @Core.Computed;
   courseDescription : String(255);
   availability      : Boolean;
@@ -65,7 +71,7 @@ entity LearningsMasterData : cuid {
   courseContact     : String(100);
 }
 
-entity ProjectsMasterData : cuid {
+entity ProjectsMasterData : managed {
   key ID: UUID @Core.Computed;
   projectName        : String(150);
   projectDescription : String(255);
