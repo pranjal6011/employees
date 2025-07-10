@@ -160,13 +160,16 @@
                 "ratings/@com.sap.vocabularies.UI.v1.LineItem#i18nRatings": {
                   "columns": {
                     "DataField::year": {
-                      "width": "25%"
+                      "width": "10%"
                     },
                     "DataField::ratings": {
                       "width": "25%"
                     },
                     "DataField::reviewer_ID": {
                       "width": "25%"
+                    },
+                    "DataFieldForAnnotation::DataPoint::ratings": {
+                      "width": "15%"
                     }
                   }
                 },

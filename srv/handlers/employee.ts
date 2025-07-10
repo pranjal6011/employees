@@ -46,7 +46,14 @@ export class EmployeeHandler {
     req.data.emailId = await this.generateUniqueEmail(firstName, lastName);
     req.data.status = "Active";
     req.data.annualLeavesGranted = 20;
-    req.data.annualLeavesUsed = 0;
+
+    if (req.data.annualLeavesUsed < 0) {
+      return req.reject(400, "Used Annual Leaves cannot be negative.");
+    }
+    if (req.data.annualLeavesUsed > req.data.annualLeavesGranted) {
+      return req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.");
+    }
+
 
     if (Array.isArray(req.data.ratings)) {
       const yearSet = new Set();
@@ -130,6 +137,12 @@ export class EmployeeHandler {
         ID: { "!=": ID }
       });
       if (conflict) return req.reject(400, "Bank Account Number already exists.");
+    }
+    if (req.data.annualLeavesUsed < 0) {
+      return req.reject(400, "Used Annual Leaves cannot be negative.");
+    }
+    if (req.data.annualLeavesUsed > req.data.annualLeavesGranted) {
+      return req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.");
     }
 
     const yearSet = new Set();

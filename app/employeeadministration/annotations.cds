@@ -24,18 +24,8 @@ annotate service.Employees with @(
         },
         {
             $Type: 'UI.DataField',
-            Value: address,
-            Label: '{i18n>Address}',
-        },
-        {
-            $Type: 'UI.DataField',
             Value: status,
             Label: '{i18n>Status}',
-        },
-        {
-            $Type: 'UI.DataField',
-            Value: bankName,
-            Label: '{i18n>Bankname}',
         },
     ],
     UI.Facets                        : [
@@ -148,8 +138,7 @@ annotate service.Employees with @(
         firstName,
         lastName,
         emailId,
-        bankName,
-        bankAccountNumber,
+        status,
     ],
 
 );
@@ -167,7 +156,10 @@ annotate service.Employees with {
 };
 
 annotate service.Employees with {
-    status @Common.FieldControl: #ReadOnly
+    status @(
+        Common.FieldControl: #ReadOnly,
+        Common.Label : '{i18n>Status}',
+    )
 };
 
 annotate service.Employees with {
@@ -189,11 +181,16 @@ annotate service.Ratings with @(UI.LineItem #i18nRatings: [
         Label: '{i18n>Year}',
     },
     {
-        $Type: 'UI.DataField',
-        Value: ratings,
-        Label: '{i18n>Ratings}',
+        $Type : 'UI.DataFieldForAnnotation',
+        Target : '@UI.DataPoint#ratings',
+        Label : '{i18n>Ratings}',
     },
-]);
+],
+    UI.DataPoint #ratings : {
+        Value : ratings,
+        Visualization : #Rating,
+        TargetValue : 5,
+    },);
 
 annotate service.Learnings with @(UI.LineItem #i18nEmployeeLearnings: [
     {
@@ -207,6 +204,7 @@ annotate service.Learnings with @(UI.LineItem #i18nEmployeeLearnings: [
         Label: '{i18n>Status}',
     },
 ]);
+
 
 annotate service.Projects with @(UI.LineItem #i18nEmployeeProjects: [
     {
@@ -318,10 +316,6 @@ annotate service.Employees with {
         Common.FieldControl: #ReadOnly,
         Common.Label : '{i18n>Emailid}',
     )
-};
-
-annotate service.Employees with {
-    annualLeavesUsed @Common.FieldControl: #ReadOnly
 };
 
 annotate service.Employees with {
