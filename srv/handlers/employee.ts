@@ -4,12 +4,14 @@ export class EmployeeHandler {
   private ProjectsMasterData: any;
   private LearningsMasterData: any;
 
+  // Constructor to initialize the handler with necessary services
   constructor(Employees: any, ProjectsMasterData: any, LearningsMasterData: any) {
     this.Employees = Employees;
     this.ProjectsMasterData = ProjectsMasterData;
     this.LearningsMasterData = LearningsMasterData;
   }
 
+  // Method to generate a unique email based on first and last name
   private async generateUniqueEmail(firstName: string, lastName: string): Promise<string> {
     const cleanFirstName = firstName.trim().replace(/\s+/g, "").toLowerCase();
     const cleanLastName = lastName.trim().replace(/\s+/g, "").toLowerCase();
@@ -25,7 +27,8 @@ export class EmployeeHandler {
     return email;
   }
 
-  async beforeCreate(req: any) {
+  // Method to handle employee creation
+  public async beforeCreate(req: any) {
     if (!req.user?.is("Admin"))
       return req.reject(403, "You don't have access to create an employee.");
 
@@ -114,7 +117,8 @@ export class EmployeeHandler {
   }
 
 
-  async beforeUpdate(req: any) {
+  // Method to handle employee update
+  public async beforeUpdate(req: any) {
     if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to update an employee.");
 
     const { ID, phoneNumber, bankAccountNumber, firstName, lastName } = req.data;
@@ -174,7 +178,8 @@ export class EmployeeHandler {
 
   }
 
-  async onSetEmployeeInactive(req: any) {
+  // Method to set an employee as inactive
+  public async onSetEmployeeInactive(req: any) {
     if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to mark employee inactive.");
 
     const ID = req.params?.[0]?.ID;
@@ -188,7 +193,8 @@ export class EmployeeHandler {
     return await SELECT.one.from(this.Employees).where({ ID });
   }
 
-  afterReadAddRemainingLeaves(each: any) {
+  // Method to compute remaining leaves and delete visibility on page load
+  public async afterReadAddComputedFields(each: any) {
     const compute = (e: any) => {
       e.remainingLeaves = e.annualLeavesGranted - e.annualLeavesUsed;
       e.deleteHidden = e.status === 'Inactive';
@@ -197,10 +203,11 @@ export class EmployeeHandler {
     Array.isArray(each) ? each.forEach(compute) : compute(each);
   }
 
-  register(service: any) {
+  // Method to register the service with the handler
+  public register(service: any) {
     service.before("CREATE", this.Employees, this.beforeCreate.bind(this));
     service.before("UPDATE", this.Employees, this.beforeUpdate.bind(this));
     service.on("setEmployeeInactive", service.entities.Employees, this.onSetEmployeeInactive.bind(this));
-    service.after("READ", this.Employees, this.afterReadAddRemainingLeaves.bind(this));
+    service.after("READ", this.Employees, this.afterReadAddComputedFields.bind(this));
   }
 }

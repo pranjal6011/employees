@@ -1,5 +1,7 @@
 using AdminService from '../admin-service';
 
+// here we define the access control for the AdminService
+
 annotate AdminService.Employees with @(restrict: [
   { grant: ['READ'], to: 'User' },
   { grant: ['*'],    to: 'Admin' }

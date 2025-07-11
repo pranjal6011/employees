@@ -3,6 +3,7 @@ import { EmployeeHandler } from "./handlers/employee";
 import { ProjectMasterHandler } from "./handlers/projectmasterdata";
 import { LearningMasterHandler  } from "./handlers/learningmasterdata";
 
+// This module initializes and registers all service-level handlers
 export default cds.service.impl(async function () {
   const { Employees, Learnings, LearningsMasterData, Projects, ProjectsMasterData } = this.entities;
 

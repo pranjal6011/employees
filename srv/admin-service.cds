@@ -2,6 +2,7 @@ using my.employee as db from '../db/schema';
 using from './access/access';
 using from './actions/employee-actions';
 
+// expose the AdminService with access control
 service AdminService @(requires: 'authenticated-user') {
   @odata.draft.enabled
   entity Employees           as projection on db.Employees

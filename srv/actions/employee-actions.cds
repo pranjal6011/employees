@@ -1,5 +1,6 @@
 using AdminService from '../admin-service';
 
+// here we define the actions for the AdminService
 annotate AdminService.Employees actions {
   setEmployeeInactive @(
     requires: 'Admin',
