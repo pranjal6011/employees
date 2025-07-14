@@ -1,134 +1,136 @@
+import cds from '@sap/cds';
 
 export class EmployeeHandler {
   private Employees: any;
   private ProjectsMasterData: any;
   private LearningsMasterData: any;
 
-  // Constructor to initialize the handler with necessary services
   constructor(Employees: any, ProjectsMasterData: any, LearningsMasterData: any) {
     this.Employees = Employees;
     this.ProjectsMasterData = ProjectsMasterData;
     this.LearningsMasterData = LearningsMasterData;
   }
 
-  // Method to generate a unique email based on first and last name
   private async generateUniqueEmail(firstName: string, lastName: string): Promise<string> {
     const cleanFirstName = firstName.trim().replace(/\s+/g, "").toLowerCase();
     const cleanLastName = lastName.trim().replace(/\s+/g, "").toLowerCase();
+    const base = `${cleanFirstName}.${cleanLastName}`;
+    const domain = "@sap.com";
 
-    let base = `${cleanFirstName}.${cleanLastName}@sap.com`;
-    let email = base;
-    let counter = 1;
+    const existingEmails = await cds.run(
+      SELECT.from(this.Employees)
+        .columns('emailId')
+        .where({ emailId: { like: `${base}%${domain}` } })
+    );
 
-    while (await SELECT.one.from(this.Employees).where({ emailId: email })) {
-      email = `${cleanFirstName}.${cleanLastName}${counter++}@sap.com`;
-    }
+    if (!existingEmails.length) return `${base}${domain}`;
 
-    return email;
+    const suffixes = existingEmails.map((e: any) => {
+      const match = e.emailId.match(new RegExp(`^${base}(\\d*)${domain}$`));
+      return match && match[1] ? parseInt(match[1], 10) : 0;
+    });
+
+    const maxSuffix = Math.max(...suffixes);
+    return `${base}${maxSuffix + 1}${domain}`;
   }
 
-  // Method to handle employee creation
-  public async beforeCreate(req: any) {
-    if (!req.user?.is("Admin"))
-      return req.reject(403, "You don't have access to create an employee.");
+  private cleanAndValidatePhone(phoneNumber: string, req: any): string {
+    const cleaned = phoneNumber.replace(/^0+/, '');
+    if (!/^\d{10}$/.test(cleaned)) req.reject(400, "Phone number must be exactly 10 digits.");
+    return cleaned;
+  }
 
-    const { firstName, lastName, bankAccountNumber, phoneNumber } = req.data;
-    const cleanedPhone = phoneNumber.replace(/^0+/, '');
-    req.data.phoneNumber = cleanedPhone;
-
-    if (!/^\d{10}$/.test(cleanedPhone))
-      return req.reject(400, "Phone number must be exactly 10 digits.");
-
-    if (!/^\d+$/.test(bankAccountNumber))
-      return req.reject(400, "Bank Account Number must contain digits only.");
-
-    const exists = await SELECT.one.from(this.Employees).where({ bankAccountNumber });
-    if (exists)
-      return req.reject(400, "Bank Account Number already exists.");
-
-    req.data.emailId = await this.generateUniqueEmail(firstName, lastName);
-    req.data.status = "Active";
-    req.data.annualLeavesGranted = 20;
-
-    if (req.data.annualLeavesUsed < 0) {
-      return req.reject(400, "Used Annual Leaves cannot be negative.");
+  private validateBankAccount(bankAccountNumber: string, req: any) {
+    if (!/^\d+$/.test(bankAccountNumber)) {
+      req.reject(400, "Bank Account Number must contain digits only.");
     }
-    if (req.data.annualLeavesUsed > req.data.annualLeavesGranted) {
-      return req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.");
+  }
+
+  private async checkBankAccountUnique(bankAccountNumber: string, req: any, currentID?: any) {
+    const query = SELECT.one.from(this.Employees).where({ bankAccountNumber });
+    if (currentID) query.where({ ID: { "!=": currentID } });
+    const conflict = await cds.run(query);
+    if (conflict) req.reject(400, "Bank Account Number already exists.");
+  }
+
+  private validateLeaves(used: number, granted: number, req: any) {
+    if (used < 0) req.reject(400, "Used Annual Leaves cannot be negative.");
+    if (used > granted) req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.");
+  }
+
+  private validateRatings(ratings: any[], req: any) {
+    const yearSet = new Set();
+    for (const r of ratings) {
+      if (yearSet.has(r.year)) req.reject(400, `Duplicate rating for year ${r.year}`);
+      if (r.ratings < 1 || r.ratings > 5) req.reject(400, `Rating for year ${r.year} must be between 1 and 5`);
+      yearSet.add(r.year);
     }
+  }
 
+  private async enrichProjects(projects: any[], req: any) {
+    const projectSet = new Set();
+    for (const p of projects) {
+      if (projectSet.has(p.project_ID)) req.reject(400, "Project already assigned.");
+      projectSet.add(p.project_ID);
 
-    if (Array.isArray(req.data.ratings)) {
-      const yearSet = new Set();
-      for (const r of req.data.ratings) {
-        if (yearSet.has(r.year))
-          return req.reject(400, `Duplicate rating for year ${r.year}`);
-        if (r.ratings < 1 || r.ratings > 5)
-          return req.reject(400, `Rating for year ${r.year} must be between 1 and 5`);
-        yearSet.add(r.year);
-      }
+      const projectMaster = await cds.run(SELECT.one.from(this.ProjectsMasterData).where({ ID: p.project_ID }));
+      if (projectMaster) p.projectDescription = projectMaster.projectDescription;
     }
+  }
 
-    if (Array.isArray(req.data.projects)) {
-      const projectSet = new Set();
-      for (const p of req.data.projects) {
-        if (projectSet.has(p.project_ID))
-          return req.reject(400, "Project already assigned.");
-        projectSet.add(p.project_ID);
-
-        const projectMaster = await SELECT.one.from(this.ProjectsMasterData).where({ ID: p.project_ID });
-        if (projectMaster)
-          p.projectDescription = projectMaster.projectDescription;
-      }
-    }
-
-    const validLearningStatuses = ["Not Yet Started", "In Progress", "Completed"];
-    const initialLearnings = await SELECT.from(this.LearningsMasterData).where({ initial: true });
-    const initialLearningIDs = new Set(initialLearnings.map((l: { ID: any; }) => l.ID));
+  private async validateAndAppendLearnings(req: any) {
+    const initialLearnings = await cds.run(
+      SELECT.from(this.LearningsMasterData).where({ initial: true })
+    );
+    const initialLearningIDs = new Set(initialLearnings.map((l: any) => l.ID));
 
     req.data.learnings = req.data.learnings || [];
     const learningSet = new Set();
 
-    // First validate and collect existing learning_IDs
     for (const l of req.data.learnings) {
-      if (learningSet.has(l.learning_ID))
-        return req.reject(400, "Learning already assigned.");
+      if (learningSet.has(l.learning_ID)) req.reject(400, "Learning already assigned.");
       learningSet.add(l.learning_ID);
-
-      if (!validLearningStatuses.includes(l.status)) {
-        return req.reject(
-          400,
-          `Invalid learning status: '${l.status}'. Must be one of: ${validLearningStatuses.join(", ")}`
-        );
-      }
     }
 
-    // Then append initial learnings if not already present
     for (const learning of initialLearnings) {
       if (!learningSet.has(learning.ID)) {
         req.data.learnings.push({
           learning_ID: learning.ID,
-          status: "Not Yet Started"
+          status_code: "NYS"
         });
         learningSet.add(learning.ID);
       }
     }
-
   }
 
+  public async beforeCreate(req: any) {
+    if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to create an employee.");
 
-  // Method to handle employee update
+    const { firstName, lastName, bankAccountNumber, phoneNumber } = req.data;
+
+    req.data.phoneNumber = this.cleanAndValidatePhone(phoneNumber, req);
+    this.validateBankAccount(bankAccountNumber, req);
+    await this.checkBankAccountUnique(bankAccountNumber, req);
+
+    req.data.emailId = await this.generateUniqueEmail(firstName, lastName);
+    req.data.status_code = "A";
+    req.data.annualLeavesGranted = 20;
+
+    this.validateLeaves(req.data.annualLeavesUsed, req.data.annualLeavesGranted, req);
+    if (Array.isArray(req.data.ratings)) this.validateRatings(req.data.ratings, req);
+    if (Array.isArray(req.data.projects)) await this.enrichProjects(req.data.projects, req);
+    await this.validateAndAppendLearnings(req);
+  }
+
   public async beforeUpdate(req: any) {
     if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to update an employee.");
 
     const { ID, phoneNumber, bankAccountNumber, firstName, lastName } = req.data;
-    const cleanedPhone = phoneNumber.replace(/^0+/, '');
-    req.data.phoneNumber = cleanedPhone;
 
-    if (!/^\d{10}$/.test(cleanedPhone)) return req.reject(400, "Phone number must be exactly 10 digits.");
-    if (!/^\d+$/.test(bankAccountNumber)) return req.reject(400, "Bank Account Number must contain digits only.");
+    req.data.phoneNumber = this.cleanAndValidatePhone(phoneNumber, req);
+    this.validateBankAccount(bankAccountNumber, req);
 
-    const existing = await SELECT.one.from(this.Employees).where({ ID });
+    const existing = await cds.run(SELECT.one.from(this.Employees).where({ ID }));
     if (!existing) return req.reject(404, "Employee not found");
 
     if (firstName !== existing.firstName || lastName !== existing.lastName) {
@@ -136,74 +138,36 @@ export class EmployeeHandler {
     }
 
     if (bankAccountNumber !== existing.bankAccountNumber) {
-      const conflict = await SELECT.one.from(this.Employees).where({
-        bankAccountNumber,
-        ID: { "!=": ID }
-      });
-      if (conflict) return req.reject(400, "Bank Account Number already exists.");
-    }
-    if (req.data.annualLeavesUsed < 0) {
-      return req.reject(400, "Used Annual Leaves cannot be negative.");
-    }
-    if (req.data.annualLeavesUsed > req.data.annualLeavesGranted) {
-      return req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.");
+      await this.checkBankAccountUnique(bankAccountNumber, req, ID);
     }
 
-    const yearSet = new Set();
-    for (const r of req.data.ratings || []) {
-      if (yearSet.has(r.year)) return req.reject(400, `Duplicate rating for year ${r.year}`);
-      if (r.ratings < 1 || r.ratings > 5) return req.reject(400, `Rating for year ${r.year} must be 1-5`);
-      yearSet.add(r.year);
-    }
-
-    const projectSet = new Set();
-    for (const p of req.data.projects || []) {
-      if (projectSet.has(p.project_ID)) return req.reject(400, "Project already assigned.");
-      projectSet.add(p.project_ID);
-
-      const projectMaster = await SELECT.one.from(this.ProjectsMasterData).where({ ID: p.project_ID });
-      if (projectMaster) p.projectDescription = projectMaster.projectDescription;
-    }
-
-    const validLearningStatuses = ["Not Yet Started", "In Progress", "Completed"];
-    const learningSet = new Set();
-    for (const l of req.data.learnings || []) {
-      if (learningSet.has(l.learning_ID)) return req.reject(400, "Learning already assigned.");
-      learningSet.add(l.learning_ID);
-
-      if (!validLearningStatuses.includes(l.status)) {
-        return req.reject(400, `Invalid learning status: '${l.status}'. Must be one of: ${validLearningStatuses.join(", ")}`);
-      }
-    }
-
+    this.validateLeaves(req.data.annualLeavesUsed, req.data.annualLeavesGranted, req);
+    if (Array.isArray(req.data.ratings)) this.validateRatings(req.data.ratings, req);
+    if (Array.isArray(req.data.projects)) await this.enrichProjects(req.data.projects, req);
+    if (Array.isArray(req.data.learnings)) await this.validateAndAppendLearnings(req);
   }
 
-  // Method to set an employee as inactive
   public async onSetEmployeeInactive(req: any) {
     if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to mark employee inactive.");
-
     const ID = req.params?.[0]?.ID;
     if (!ID) return req.reject(400, "Missing Employee ID");
 
-    const employee = await SELECT.one.from(this.Employees).where({ ID });
+    const employee = await cds.run(SELECT.one.from(this.Employees).where({ ID }));
     if (!employee) return req.reject(404, "Employee not found");
-    if (employee.status === "Inactive") return req.reject(400, "Already inactive");
+    if (employee.status_code === "I") return req.reject(400, "Already inactive");
 
-    await UPDATE(this.Employees).set({ status: "Inactive" }).where({ ID });
-    return await SELECT.one.from(this.Employees).where({ ID });
+    await cds.run(UPDATE(this.Employees).set({ status_code: "I" }).where({ ID }));
+    return await cds.run(SELECT.one.from(this.Employees).where({ ID }));
   }
 
-  // Method to compute remaining leaves and delete visibility on page load
   public async afterReadAddComputedFields(each: any) {
     const compute = (e: any) => {
       e.remainingLeaves = e.annualLeavesGranted - e.annualLeavesUsed;
-      e.deleteHidden = e.status === 'Inactive';
+      e.deleteHidden = e.status_code === 'I';
     };
-
     Array.isArray(each) ? each.forEach(compute) : compute(each);
   }
 
-  // Method to register the service with the handler
   public register(service: any) {
     service.before("CREATE", this.Employees, this.beforeCreate.bind(this));
     service.before("UPDATE", this.Employees, this.beforeUpdate.bind(this));

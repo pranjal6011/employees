@@ -1,4 +1,6 @@
 using AdminService as service from '../../srv/admin-service';
+using from '../../db/schema';
+
 
 annotate service.Employees with @(
     UI.LineItem                      : [
@@ -24,7 +26,7 @@ annotate service.Employees with @(
         },
         {
             $Type: 'UI.DataField',
-            Value: status,
+            Value: status_code,
             Label: '{i18n>Status}',
         },
     ],
@@ -78,9 +80,8 @@ annotate service.Employees with @(
                 Label: '{i18n>Phonenumber}',
             },
             {
-                $Type: 'UI.DataField',
-                Value: status,
-                Label: '{i18n>Status}',
+                $Type : 'UI.DataField',
+                Value : status_code,
             },
             {
                 $Type: 'UI.DataField',
@@ -138,7 +139,7 @@ annotate service.Employees with @(
         firstName,
         lastName,
         emailId,
-        status,
+        status_code,
     ],
 
 );
@@ -157,9 +158,12 @@ annotate service.Employees with {
 
 annotate service.Employees with {
     status @(
-        Common.FieldControl: #ReadOnly,
         Common.Label : '{i18n>Status}',
-    )
+        Common.ValueListWithFixedValues : true,
+        Common.Text : status.name,
+        Common.Text.@UI.TextArrangement : #TextOnly,
+        Common.FieldControl : #ReadOnly,
+        )
 };
 
 annotate service.Employees with {
@@ -199,9 +203,9 @@ annotate service.Learnings with @(UI.LineItem #i18nEmployeeLearnings: [
         Label: '{i18n>LearningDescription}',
     },
     {
-        $Type: 'UI.DataField',
-        Value: status,
-        Label: '{i18n>Status}',
+        $Type : 'UI.DataField',
+        Value : status_code,
+        Label : '{i18n>Status}',
     },
 ]);
 
@@ -211,11 +215,6 @@ annotate service.Projects with @(UI.LineItem #i18nEmployeeProjects: [
         $Type: 'UI.DataField',
         Value: project_ID,
         Label: '{i18n>Projectname}',
-    },
-    {
-        $Type: 'UI.DataField',
-        Value: projectDescription,
-        Label: '{i18n>Projectdescription}',
     },
 ]);
 
@@ -251,6 +250,7 @@ annotate service.Learnings with {
             Label         : '{i18n>LearningDescription}',
         },
         Common.ValueListWithFixedValues: false,
+        Common.FieldControl : #Mandatory,
     )
 };
 
@@ -289,21 +289,23 @@ annotate service.Projects with {
             Label         : '{i18n>Projectname}',
         },
         Common.ValueListWithFixedValues: false,
+        Common.FieldControl : #Mandatory,
     )
 };
 
 annotate AdminService.Employees actions {
     setEmployeeInactive       @(
         Core.OperationAvailable: {$edmJson: {$Eq: [
-            {$Path: 'in/status'},
-            'Active'
+            {$Path: 'in/status_code'},
+            'A'
         ]}},
         Common.SideEffects     : {
             SourceEntities  : ['/Employees'],
-            TargetProperties: ['in/status', 'in/deleteHidden'],
+            TargetProperties: ['in/status_code', 'in/deleteHidden'],
         }
     );
 };
+
 
 annotate AdminService.Employees with @(Capabilities.DeleteRestrictions: {
     $Type    : 'Capabilities.DeleteRestrictionsType',
@@ -324,10 +326,6 @@ annotate service.Employees with {
 
 annotate service.Employees with {
     remainingLeaves @Common.FieldControl: #ReadOnly
-};
-
-annotate service.Projects with {
-    projectDescription @Common.FieldControl: #ReadOnly
 };
 
 annotate service.ProjectsMasterData with {
@@ -365,6 +363,7 @@ annotate service.Ratings with {
             Label         : '{i18n>ReviewerId}',
         },
         Common.ValueListWithFixedValues: true,
+        Common.FieldControl : #Mandatory,
     )
 };
 
@@ -380,4 +379,42 @@ annotate service.Employees with {
 
 annotate service.Employees with {
     bankName @Common.Label : '{i18n>Bankname}'
+};
+annotate service.Ratings with {
+    year @Common.FieldControl : #Mandatory
+};
+
+annotate service.Learnings with {
+    status @(
+        Common.FieldControl : #Mandatory,
+        Common.Text : status.name,
+        Common.Text.@UI.TextArrangement : #TextOnly,
+        Common.ValueList : {
+            $Type : 'Common.ValueListType',
+            CollectionPath : 'LearningStatusCodeList',
+            Parameters : [
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    LocalDataProperty : status_code,
+                    ValueListProperty : 'code',
+                },
+            ],
+            Label : '{i18n>Status}',
+        },
+        Common.ValueListWithFixedValues : true,
+        )
+};
+
+annotate service.LearningStatusCodeList with {
+    code @(
+        Common.Text : name,
+        Common.Text.@UI.TextArrangement : #TextOnly,
+    )
+};
+
+annotate service.EmployeeStatusCodeList with {
+    code @(
+        Common.Text : name,
+        Common.Text.@UI.TextArrangement : #TextOnly,
+    )
 };

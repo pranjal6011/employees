@@ -6,12 +6,12 @@ annotate AdminService.Employees actions {
     requires: 'Admin',
     Core.OperationAvailable: {
       $edmJson: {
-        $Eq: [ { $Path: 'in/status' }, 'Active' ]
+        $Eq: [ { $Path: 'in/status_code' }, 'A' ]
       }
     },
     Common.SideEffects: {
       SourceEntities: ['/Employees'],
-      TargetProperties: ['in/status']
+      TargetProperties: ['in/status_code']
     }
   );
 };

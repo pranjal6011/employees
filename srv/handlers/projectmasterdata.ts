@@ -1,3 +1,4 @@
+import cds from "@sap/cds";
 // This handler manages access control for project master data operations
 export class ProjectMasterHandler {
 
@@ -21,7 +22,7 @@ export class ProjectMasterHandler {
     }
 
     const ID = req.data.ID;
-    const referenced = await SELECT.one.from(this.Projects).where({ project_ID: ID });
+    const referenced = await cds.run(SELECT.one.from(this.Projects).where({ project_ID: ID }));
     if (referenced) {
       return req.reject(400, "Cannot delete: This project is still assigned to an employee.");
     }

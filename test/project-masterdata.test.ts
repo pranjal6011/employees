@@ -2,31 +2,25 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { describe, beforeEach, afterEach, it } from "mocha";
 import { ProjectMasterHandler } from "../srv/handlers/projectmasterdata";
+import cds from "@sap/cds";
 
 let req: any;
 let handler: ProjectMasterHandler;
+let cdsRunStub: sinon.SinonStub;
 
 describe("ProjectMasterHandler Tests", () => {
   beforeEach(() => {
+    cdsRunStub = sinon.stub(cds, "run");
     req = {
       data: { ID: "P001" },
       user: { is: (role: string) => role === "Admin" },
       reject: sinon.stub(),
     };
 
-    (global as any).SELECT = {
-      one: {
-        from: () => ({
-          where: async () => null,
-        }),
-      },
-    };
-
     handler = new ProjectMasterHandler("Projects", "ProjectsMasterData");
   });
 
   afterEach(() => {
-    delete (global as any).SELECT;
     sinon.restore();
   });
 
@@ -43,14 +37,20 @@ describe("ProjectMasterHandler Tests", () => {
   };
 
   it("should reject DELETE if project is still assigned to employee", async () => {
-    (global as any).SELECT.one.from = () => ({
-      where: async () => ({ ID: "P001" }),
-    });
-
+    cdsRunStub.resolves({ ID: "P001" }); // Simulate project is referenced
     const deleteHook = getHookFromRegister("DELETE", "ProjectsMasterData");
     await deleteHook(req);
     expect(req.reject.calledWith(400, sinon.match("still assigned"))).to.be.true;
   });
+
+  it("should allow DELETE if project is not referenced", async () => {
+      cdsRunStub.resolves(null);
+  
+      const deleteHook = getHookFromRegister("DELETE", "ProjectsMasterData");
+      await deleteHook(req);
+  
+      expect(req.reject.called).to.be.false;
+    });
 
   it("should reject DELETE if user is not admin", async () => {
     req.user.is = () => false;

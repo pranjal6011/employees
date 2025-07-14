@@ -1,3 +1,5 @@
+import cds from "@sap/cds";
+
 // This handler manages access control for learning master data operations
 export class LearningMasterHandler {
 
@@ -21,7 +23,7 @@ export class LearningMasterHandler {
     }
 
     const ID = req.data.ID;
-    const referenced = await SELECT.one.from(this.Learnings).where({ learning_ID: ID });
+    const referenced = await cds.run(SELECT.one.from(this.Learnings).where({ learning_ID: ID }));
     if (referenced) {
       return req.reject(400, "Cannot delete: This learning is still assigned to an employee.");
     }
