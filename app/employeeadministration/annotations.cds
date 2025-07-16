@@ -3,6 +3,7 @@ using from '../../db/schema';
 
 
 annotate service.Employees with @(
+    odata.draft.enabled,
     UI.LineItem                      : [
         {
             $Type: 'UI.DataField',
@@ -28,6 +29,7 @@ annotate service.Employees with @(
             $Type: 'UI.DataField',
             Value: status_code,
             Label: '{i18n>Status}',
+            Criticality: status.criticality,
         },
     ],
     UI.Facets                        : [
@@ -82,6 +84,7 @@ annotate service.Employees with @(
             {
                 $Type : 'UI.DataField',
                 Value : status_code,
+                Criticality: status.criticality,
             },
             {
                 $Type: 'UI.DataField',

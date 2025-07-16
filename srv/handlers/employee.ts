@@ -36,13 +36,13 @@ export class EmployeeHandler {
 
   private cleanAndValidatePhone(phoneNumber: string, req: any): string {
     const cleaned = phoneNumber.replace(/^0+/, '');
-    if (!/^\d{10}$/.test(cleaned)) req.reject(400, "Phone number must be exactly 10 digits.");
+    if (!/^\d{10}$/.test(cleaned)) req.reject(400, "Phone number must be exactly 10 digits.",'in/phoneNumber');
     return cleaned;
   }
 
   private validateBankAccount(bankAccountNumber: string, req: any) {
     if (!/^\d+$/.test(bankAccountNumber)) {
-      req.reject(400, "Bank Account Number must contain digits only.");
+      req.reject(400, "Bank Account Number must contain digits only.",'in/bankAccountNumber');
     }
   }
 
@@ -50,19 +50,19 @@ export class EmployeeHandler {
     const query = SELECT.one.from(this.Employees).where({ bankAccountNumber });
     if (currentID) query.where({ ID: { "!=": currentID } });
     const conflict = await cds.run(query);
-    if (conflict) req.reject(400, "Bank Account Number already exists.");
+    if (conflict) req.reject(400, "Bank Account Number already exists.",'in/bankAccountNumber');
   }
 
   private validateLeaves(used: number, granted: number, req: any) {
-    if (used < 0) req.reject(400, "Used Annual Leaves cannot be negative.");
-    if (used > granted) req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.");
+    if (used < 0) req.reject(400, "Used Annual Leaves cannot be negative.",'in/annualLeavesUsed');
+    if (used > granted) req.reject(400, "Annual Leaves Used cannot exceed Annual Leaves Granted.",'in/annualLeavesUsed');
   }
 
   private validateRatings(ratings: any[], req: any) {
     const yearSet = new Set();
     for (const r of ratings) {
-      if (yearSet.has(r.year)) req.reject(400, `Duplicate rating for year ${r.year}`);
-      if (r.ratings < 1 || r.ratings > 5) req.reject(400, `Rating for year ${r.year} must be between 1 and 5`);
+      if (yearSet.has(r.year)) req.reject(400, `Duplicate rating for year ${r.year}`,'in/ratings');
+      if (r.ratings < 1 || r.ratings > 5) req.reject(400, `Rating for year ${r.year} must be between 1 and 5`,'in/ratings');
       yearSet.add(r.year);
     }
   }
@@ -70,7 +70,7 @@ export class EmployeeHandler {
   private async enrichProjects(projects: any[], req: any) {
     const projectSet = new Set();
     for (const p of projects) {
-      if (projectSet.has(p.project_ID)) req.reject(400, "Project already assigned.");
+      if (projectSet.has(p.project_ID)) req.reject(400, "Project already assigned.",'in/project_ID');
       projectSet.add(p.project_ID);
 
       const projectMaster = await cds.run(SELECT.one.from(this.ProjectsMasterData).where({ ID: p.project_ID }));
@@ -88,7 +88,7 @@ export class EmployeeHandler {
     const learningSet = new Set();
 
     for (const l of req.data.learnings) {
-      if (learningSet.has(l.learning_ID)) req.reject(400, "Learning already assigned.");
+      if (learningSet.has(l.learning_ID)) req.reject(400, "Learning already assigned.",'in/learning_ID');
       learningSet.add(l.learning_ID);
     }
 
@@ -105,6 +105,7 @@ export class EmployeeHandler {
 
   public async beforeCreate(req: any) {
     if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to create an employee.");
+    if (!req.data.ID) req.data.ID = cds.utils.uuid();
 
     const { firstName, lastName, bankAccountNumber, phoneNumber } = req.data;
 
@@ -150,11 +151,11 @@ export class EmployeeHandler {
   public async onSetEmployeeInactive(req: any) {
     if (!req.user?.is("Admin")) return req.reject(403, "You don't have access to mark employee inactive.");
     const ID = req.params?.[0]?.ID;
-    if (!ID) return req.reject(400, "Missing Employee ID");
+    if (!ID) return req.reject(400, "Missing Employee ID",'in/ID');
 
     const employee = await cds.run(SELECT.one.from(this.Employees).where({ ID }));
     if (!employee) return req.reject(404, "Employee not found");
-    if (employee.status_code === "I") return req.reject(400, "Already inactive");
+    if (employee.status_code === "I") return req.reject(400, "Already inactive",'in/status_code');
 
     await cds.run(UPDATE(this.Employees).set({ status_code: "I" }).where({ ID }));
     return await cds.run(SELECT.one.from(this.Employees).where({ ID }));

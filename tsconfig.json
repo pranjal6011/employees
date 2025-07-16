@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true, 
-    "types": ["@cap-js/cds-types", "node"]
+    "types": ["@cap-js/cds-types", "node", "mocha"]
   },
-  "include": ["srv/**/*.ts", "app/**/*.ts", "test/**/*.ts"],
+  "include": ["srv/**/*.ts", "app/**/*.ts", "test/**/*.ts"]
 }

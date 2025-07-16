@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import sinon from "sinon";
 import { describe, beforeEach, afterEach, it } from "mocha";
-import { LearningMasterHandler } from "../srv/handlers/learningmasterdata";
+import { LearningMasterHandler } from "../../srv/handlers/learningmasterdata";
 import cds from "@sap/cds";
 
 let req: any;

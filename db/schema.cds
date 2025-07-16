@@ -9,20 +9,21 @@ entity EmployeeStatusCodeList : CodeList {
   key code  : String enum {
     Active = 'A';
     Inactive = 'I';
-  };
+  } default 'A';
+  criticality : Integer;
   name  : String(100);
   descr : String(255);
 }
 entity Employees : managed {
   key ID                  : UUID        @Core.Computed;
-      firstName           : String(100);
+      firstName           : String(100); @mandatory
       lastName            : String(100);
       emailId             : String(100) @unique;
       address             : String(255);
-      phoneNumber         : String(15);
+      phoneNumber         : String(15); @mandatory
       status              : Association to EmployeeStatusCodeList;
       bankName            : String(100);
-      bankAccountNumber   : String(50)  @unique;
+      bankAccountNumber   : String(50)  @unique @mandatory;
       bankCode            : String(20);
       annualLeavesGranted : Integer default 20;
       annualLeavesUsed    : Integer default 0;

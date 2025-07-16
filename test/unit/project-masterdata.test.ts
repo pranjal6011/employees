@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import sinon from "sinon";
 import { describe, beforeEach, afterEach, it } from "mocha";
-import { ProjectMasterHandler } from "../srv/handlers/projectmasterdata";
+import { ProjectMasterHandler } from "../../srv/handlers/projectmasterdata";
 import cds from "@sap/cds";
 
 let req: any;

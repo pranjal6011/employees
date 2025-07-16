@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import sinon from "sinon";
 import { describe, it, beforeEach, afterEach } from "mocha";
-import { EmployeeHandler } from "../srv/handlers/employee";
+import { EmployeeHandler } from "../../srv/handlers/employee";
 import cds from "@sap/cds";
 
 describe("Employee Handler Tests", () => {
