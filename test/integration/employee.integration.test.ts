@@ -1,37 +1,124 @@
 import cds from '@sap/cds';
-const { GET, POST, expect, axios } = cds.test(__dirname + "/../..");
+const { GET, POST, PATCH, expect, axios } = cds.test(__dirname + "/../..");
 
-describe('Integration Test for AdminService', function () {
-  axios.defaults.auth = { username: 'adminUser', password: 'admin123' }
+describe('Integration Test for AdminService - Employees Only', function () {
+  axios.defaults.auth = { username: 'adminUser', password: 'admin123' };
 
-  it('Should create a new Employee and fetch it by firstName', async () => {
-    const newEmployee = {
-      firstName: "TestName",
-      lastName: "LastName",
-      bankAccountNumber: "1234567890",
+  let createdEmployee: any;
+
+  beforeEach(async () => {
+    const { data: draft } = await POST('/odata/v4/admin/Employees', {});
+    await PATCH(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)`, {
+      firstName: "TestEmployee",
+      lastName: "User",
       phoneNumber: "9876543210",
-      address: "BLR"
-    };
+      bankAccountNumber: Date.now().toString(),
+      address: "BLR",
+      status_code: "A"
+    });
+    const { data: active } = await POST(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)/draftActivate`);
+    expect(active).to.have.property('ID');
+    createdEmployee = active;
+  });
 
-    // Create the Employee
-    const createResp = await POST('/odata/v4/admin/Employees', newEmployee);
-    expect(createResp.status).to.equal(201);
-    expect(createResp.data).to.have.property('ID');
-    console.log('Created Employee:', createResp.data);
 
-    // Fetch by firstName
-    const fetchResp = await GET(`/odata/v4/admin/Employees?$filter=firstName eq 'TestName'`);
-    expect(fetchResp.status).to.equal(200);
-    console.log('Fetched Employees:', fetchResp.data.value);
+  it('Should set an Employee inactive using action', async () => {
+    const { data: updated } = await POST(`/odata/v4/admin/Employees(ID=${createdEmployee.ID},IsActiveEntity=true)/setEmployeeInactive`, {});
+    expect(updated.status_code).to.equal('I');
+  });
 
-    expect(fetchResp.data.value).to.be.an('array').with.length.greaterThan(0);
-    expect(fetchResp.data.value[0].firstName).to.equal('TestName');
+  it('Should not allow setting already inactive Employee again', async () => {
+    await POST(`/odata/v4/admin/Employees(ID=${createdEmployee.ID},IsActiveEntity=true)/setEmployeeInactive`, {});
+    try {
+      await POST(`/odata/v4/admin/Employees(ID=${createdEmployee.ID},IsActiveEntity=true)/setEmployeeInactive`, {});
+      throw new Error('Expected error not thrown');
+    } catch (err: any) {
+      expect(err.response.status).to.equal(400);
+      expect(err.response.data.error.message).to.include('Already inactive');
+    }
+  });
+
+  it('Should not allow duplicate bank account number', async () => {
+    const { data: draft } = await POST('/odata/v4/admin/Employees', {});
+    await PATCH(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)`, {
+      firstName: "DuplicateBank",
+      lastName: "User2",
+      phoneNumber: "9876543211",
+      bankAccountNumber: createdEmployee.bankAccountNumber, // duplicate
+      address: "BLR",
+      status_code: "A"
+    });
+
+    try {
+      await POST(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)/draftActivate`);
+      throw new Error('Expected error not thrown');
+    } catch (err: any) {
+      expect(err.response.status).to.equal(400);
+      expect(err.response.data.error.message).to.include('already exists');
+    }
   });
 
   it('Should fetch all Employees', async () => {
     const response = await GET('/odata/v4/admin/Employees');
     expect(response.status).to.equal(200);
-    console.log('All Employees:', response.data.value);
     expect(response.data.value).to.be.an('array');
+  });
+
+  it('Should fail creating Employee with invalid phone number', async () => {
+    const { data: draft } = await POST('/odata/v4/admin/Employees', {});
+    await PATCH(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)`, {
+      firstName: "InvalidPhone",
+      lastName: "User",
+      phoneNumber: "123",  // Invalid
+      bankAccountNumber: Date.now().toString(),
+      address: "BLR",
+      status_code: "A"
+    });
+
+    try {
+      await POST(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)/draftActivate`);
+      throw new Error('Expected error not thrown');
+    } catch (err: any) {
+      expect(err.response.status).to.equal(400);
+      expect(err.response.data.error.message).to.include('Phone number must be exactly 10 digits');
+    }
+  });
+
+  it('Should fail creating Employee with negative leaves used', async () => {
+    const { data: draft } = await POST('/odata/v4/admin/Employees', {});
+    await PATCH(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)`, {
+      firstName: "NegativeLeave",
+      lastName: "User",
+      phoneNumber: "9876543216",
+      bankAccountNumber: Date.now().toString(),
+      address: "BLR",
+      annualLeavesUsed: -5,
+      status_code: "A"
+    });
+
+    try {
+      await POST(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)/draftActivate`);
+      throw new Error('Expected error not thrown');
+    } catch (err: any) {
+      expect(err.response.status).to.equal(400);
+      expect(err.response.data.error.message).to.include('Used Annual Leaves cannot be negative');
+    }
+  });
+
+  it('Should fetch inactive Employees using filter', async () => {
+    const { data: draft } = await POST('/odata/v4/admin/Employees', {});
+    await PATCH(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)`, {
+      firstName: "InactiveFilter",
+      lastName: "User",
+      phoneNumber: "9876543222",
+      bankAccountNumber: Date.now().toString(),
+      address: "BLR",
+      status_code: "A"
+    });
+    const { data: active } = await POST(`/odata/v4/admin/Employees(ID=${draft.ID},IsActiveEntity=false)/draftActivate`);
+    await POST(`/odata/v4/admin/Employees(ID=${active.ID},IsActiveEntity=true)/setEmployeeInactive`);
+
+    const { data: response } = await GET(`/odata/v4/admin/Employees?$filter=status_code eq 'I'`);
+    expect(response.value.some((e: any) => e.ID === active.ID)).to.be.true;
   });
 });

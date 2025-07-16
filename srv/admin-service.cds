@@ -4,6 +4,7 @@ using from './actions/employee-actions';
 
 // expose the AdminService with access control
 service AdminService @(requires: 'authenticated-user') {
+  @odata.draft.enabled
   entity Employees              as projection on db.Employees
     actions {
       @odata.draft.bypass

@@ -1,6 +1,6 @@
 {
     "node-option": ["import=tsx"],
     "require": "./test/setup.ts",
-    "spec": "test/integration/**/*.test.ts",
+    "spec": "test/**/*.test.ts",
     "timeout": 20000
 }
